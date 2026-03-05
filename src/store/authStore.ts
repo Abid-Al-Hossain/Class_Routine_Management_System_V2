@@ -1,50 +1,113 @@
 import { create } from "zustand";
+import { storage, STORAGE_KEYS } from "../utils/storage";
 
-interface AuthState {
-  isAuthenticated: {
-    coordinator: boolean;
-    teacher: boolean;
-    student: boolean;
-    representative: boolean;
-  };
-  login: (
-    role: keyof AuthState["isAuthenticated"],
-    password: string
-  ) => boolean;
-  logout: (role: keyof AuthState["isAuthenticated"]) => void;
+export type UserRole = "coordinator" | "teacher" | "student" | "representative";
+
+interface User {
+  username: string;
+  password: string;
+  role: UserRole;
+  fullName: string;
 }
 
-const passwords = {
-  coordinator: "1234",
-  teacher: "2345",
-  student: "4567",
-  representative: "5678",
+interface AuthState {
+  users: User[];
+  currentUser: User | null;
+  isAuthenticated: Record<UserRole, boolean>;
+  login: (role: UserRole, username: string, password: string) => boolean;
+  register: (user: Omit<User, "">) => boolean;
+  logout: (role: UserRole) => void;
+}
+
+const getInitialUsers = (): User[] => {
+  const stored = storage.get<User[]>(STORAGE_KEYS.USERS, []);
+  if (stored.length === 0) {
+    // Default system users if none exist
+    const defaults: User[] = [
+      {
+        username: "admin",
+        password: "1234",
+        role: "coordinator",
+        fullName: "Admin Coordinator",
+      },
+      {
+        username: "teacher1",
+        password: "2345",
+        role: "teacher",
+        fullName: "John Doe",
+      },
+      {
+        username: "student1",
+        password: "4567",
+        role: "student",
+        fullName: "Jane Smith",
+      },
+      {
+        username: "rep1",
+        password: "5678",
+        role: "representative",
+        fullName: "Alice Brown",
+      },
+    ];
+    storage.set(STORAGE_KEYS.USERS, defaults);
+    return defaults;
+  }
+  return stored;
 };
 
-export const useAuthStore = create<AuthState>((set) => ({
-  isAuthenticated: {
+const getInitialAuthState = (): Record<UserRole, boolean> => {
+  return storage.get<Record<UserRole, boolean>>(STORAGE_KEYS.AUTH_STATE, {
     coordinator: false,
     teacher: false,
     student: false,
     representative: false,
-  },
-  login: (role, password) => {
-    if (password === passwords[role]) {
-      set((state) => ({
-        isAuthenticated: {
-          ...state.isAuthenticated,
-          [role]: true,
-        },
-      }));
+  });
+};
+
+export const useAuthStore = create<AuthState>((set) => ({
+  users: getInitialUsers(),
+  currentUser: null,
+  isAuthenticated: getInitialAuthState(),
+
+  login: (role, username, password) => {
+    const users = getInitialUsers();
+    const user = users.find(
+      (u) =>
+        u.username === username && u.password === password && u.role === role,
+    );
+
+    if (user) {
+      set((state) => {
+        const nextAuth = { ...state.isAuthenticated, [role]: true };
+        storage.set(STORAGE_KEYS.AUTH_STATE, nextAuth);
+        return {
+          isAuthenticated: nextAuth,
+          currentUser: user,
+        };
+      });
       return true;
     }
     return false;
   },
+
+  register: (newUser) => {
+    const users = getInitialUsers();
+    if (users.find((u) => u.username === newUser.username)) {
+      return false; // User already exists
+    }
+    const updatedUsers = [...users, newUser];
+    storage.set(STORAGE_KEYS.USERS, updatedUsers);
+    set({ users: updatedUsers });
+    return true;
+  },
+
   logout: (role) =>
-    set((state) => ({
-      isAuthenticated: {
-        ...state.isAuthenticated,
-        [role]: false,
-      },
-    })),
+    set((state) => {
+      const nextAuth = { ...state.isAuthenticated, [role]: false };
+      storage.set(STORAGE_KEYS.AUTH_STATE, nextAuth);
+      return {
+        isAuthenticated: nextAuth,
+        currentUser: null,
+      };
+    }),
 }));

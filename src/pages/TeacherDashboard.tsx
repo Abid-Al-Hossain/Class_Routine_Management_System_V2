@@ -8,247 +8,280 @@ import { useAuthStore } from "../store/authStore";
 import { useRoutineStore } from "../store/routineStore";
 import { useNotificationStore } from "../store/notificationStore";
 import { RoutineViewer } from "../components/RoutineViewer";
-import { Trash } from "lucide-react";
-import axios from "axios";
+import { Trash, Send, Calendar, Bell, MessageSquare } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export const TeacherDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, login, logout } = useAuthStore();
-  const { addRequest, fetchRequests, deleteRequest, requests } =
-    useRoutineStore();
+  const { isAuthenticated, login, logout, currentUser } = useAuthStore();
+  const {
+    addRequest,
+    fetchRequests,
+    deleteRequest,
+    requests,
+    routine,
+    fetchRoutine,
+  } = useRoutineStore();
   const { notifications, fetchNotifications, deleteNotification } =
     useNotificationStore();
   const [request, setRequest] = useState("");
-  const [routine, setRoutine] = useState({});
 
   // Pagination for notifications
   const itemsPerPage = 6;
-  const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = Math.ceil(notifications.length / itemsPerPage);
+  const [currentPage] = useState(1);
   const paginatedNotifications = notifications.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   // Pagination for schedule change requests
   const requestsPerPage = 6;
-  const [requestPage, setRequestPage] = useState(1);
-  const totalRequestPages = Math.ceil(requests.length / requestsPerPage);
-  const paginatedRequests = requests.slice(
+  const [requestPage] = useState(1);
+  const myRequests = requests.filter(
+    (req) => req.teacherName === currentUser?.fullName,
+  );
+  const paginatedRequests = myRequests.slice(
     (requestPage - 1) * requestsPerPage,
-    requestPage * requestsPerPage
+    requestPage * requestsPerPage,
   );
 
-  // Fetch routine, schedule change requests, and notifications
+  // Fetch data on load
   useEffect(() => {
-    const fetchRoutine = async () => {
-      try {
-        const response = await axios.get("http://localhost:5000/api/routine");
-        setRoutine(response.data);
-      } catch (error) {
-        console.error("Failed to fetch routine:", error);
-      }
-    };
     fetchRoutine();
     fetchRequests();
     fetchNotifications();
-  }, [fetchRequests, fetchNotifications]);
+  }, [fetchRequests, fetchNotifications, fetchRoutine]);
 
   const handleLogout = () => {
     logout("teacher");
     navigate("/");
   };
 
-  // Submit schedule change request and refresh list
-  const handleSubmitRequest = async () => {
-    if (request.trim()) {
-      await addRequest("Teacher Name", request); // Replace with the logged-in teacher's name
+  const handleSubmitRequest = () => {
+    if (request.trim() && currentUser) {
+      addRequest(currentUser.fullName, request);
       setRequest("");
       fetchRequests();
     }
   };
 
-  // Delete a schedule change request (always available)
-  const handleDeleteRequest = async (id: string) => {
-    await deleteRequest(id);
+  const handleDeleteRequest = (id: string) => {
+    deleteRequest(id);
     fetchRequests();
   };
 
-  // Delete a notification
-  const handleDeleteNotification = async (id: string) => {
-    await deleteNotification(id);
+  const handleDeleteNotification = (id: string) => {
+    deleteNotification(id);
     fetchNotifications();
-  };
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const handleRequestPageChange = (page: number) => {
-    setRequestPage(page);
   };
 
   if (!isAuthenticated.teacher) {
     return (
       <LoginModal
-        role="Teacher"
-        onLogin={(password) => {
-          const success = login("teacher", password);
-          if (!success) {
-            // Handle login failure if needed
-          }
+        role="teacher"
+        onLogin={(username, password) => {
+          login("teacher", username, password);
         }}
       />
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
       <Navbar title="Teacher Dashboard" showLogout onLogout={handleLogout} />
-      <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 gap-6">
-          {/* Class Routine Section */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4">Class Routine</h2>
-            <RoutineViewer routine={routine} />
-          </div>
 
-          {/* Request Schedule Change Section */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4">Request Schedule Change</h2>
-            <textarea
-              value={request}
-              onChange={(e) => setRequest(e.target.value)}
-              className="w-full p-2 border rounded mb-4"
-              rows={4}
-              placeholder="Enter your request..."
-            />
-            <button
-              onClick={handleSubmitRequest}
-              className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+      <main className="flex-grow container mx-auto px-4 py-8 max-w-7xl">
+        <header className="mb-8">
+          <motion.h1
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="text-4xl font-extrabold text-gray-900 tracking-tight"
+          >
+            Hello, Prof. {currentUser?.fullName?.split(" ").pop()}
+          </motion.h1>
+          <p className="text-gray-500 mt-2 text-lg">
+            Check your schedule and manage class change requests.
+          </p>
+        </header>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            {/* Class Routine Section */}
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden"
             >
-              Submit Request
-            </button>
+              <div className="p-8 border-b border-gray-50 flex items-center gap-3">
+                <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
+                  <Calendar size={24} />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Class Routine
+                </h2>
+              </div>
+              <div className="p-8">
+                <RoutineViewer routine={routine} />
+              </div>
+            </motion.section>
+
+            {/* Request Schedule Change Section */}
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden"
+            >
+              <div className="p-8 border-b border-gray-50 flex items-center gap-3">
+                <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
+                  <MessageSquare size={24} />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Request Change
+                </h2>
+              </div>
+              <div className="p-8">
+                <textarea
+                  value={request}
+                  onChange={(e) => setRequest(e.target.value)}
+                  className="w-full p-4 bg-gray-50 border-none rounded-2xl mb-4 focus:ring-2 focus:ring-amber-500 outline-none transition-all resize-none"
+                  rows={4}
+                  placeholder="Describe the change you need (e.g., reschedule Monday's 10AM class)..."
+                />
+                <button
+                  onClick={handleSubmitRequest}
+                  disabled={!request.trim()}
+                  className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-amber-100 hover:shadow-amber-200 disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2 group"
+                >
+                  <Send
+                    size={18}
+                    className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"
+                  />
+                  Submit Request
+                </button>
+              </div>
+            </motion.section>
           </div>
 
-          {/* Teacher's Schedule Change Requests Section */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4">
-              Your Schedule Change Requests
-            </h2>
-            <div className="space-y-4">
-              {paginatedRequests
-                .filter((req) => req.teacherName === "Teacher Name") // Replace with actual teacher name
-                .map((req, index) => (
-                  <div
-                    key={req.id || index}
-                    className={`border p-4 rounded flex justify-between items-center ${
-                      req.acceptStatus === "accepted"
-                        ? "bg-green-100"
-                        : req.acceptStatus === "rejected"
-                        ? "bg-red-100"
-                        : "bg-gray-100"
-                    }`}
-                  >
-                    <div>
-                      <p className="font-bold">{req.teacherName}</p>
-                      <p>{req.content}</p>
-                      <p className="text-sm text-gray-500">
-                        {new Date(req.timestamp).toLocaleString()}
-                      </p>
-                      <p
-                        className={`text-sm font-bold ${
+          <div className="space-y-8">
+            {/* Your Requests List */}
+            <motion.section
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden"
+            >
+              <div className="p-8 border-b border-gray-50 flex justify-between items-center">
+                <h2 className="text-xl font-bold text-gray-800">My Requests</h2>
+                <span className="bg-gray-100 text-gray-500 px-3 py-1 rounded-full text-xs font-black uppercase">
+                  Track
+                </span>
+              </div>
+              <div className="p-8 space-y-4">
+                <AnimatePresence>
+                  {paginatedRequests.length === 0 ? (
+                    <p className="text-center text-gray-400 py-4">
+                      No requests found.
+                    </p>
+                  ) : (
+                    paginatedRequests.map((req) => (
+                      <motion.div
+                        layout
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        key={req.id}
+                        className={`p-4 rounded-2xl border transition-all relative ${
                           req.acceptStatus === "accepted"
-                            ? "text-green-700"
+                            ? "bg-green-50 border-green-100"
                             : req.acceptStatus === "rejected"
-                            ? "text-red-700"
-                            : "text-gray-700"
+                              ? "bg-red-50 border-red-100"
+                              : "bg-gray-50 border-gray-100"
                         }`}
                       >
-                        Status: {req.acceptStatus}
-                      </p>
-                    </div>
-                    {/* Delete button is always visible */}
-                    <button onClick={() => handleDeleteRequest(req.id)}>
-                      <Trash
-                        size={18}
-                        className="text-red-500 hover:text-red-700"
-                      />
-                    </button>
-                  </div>
-                ))}
-            </div>
-            {totalRequestPages > 1 && (
-              <div className="flex justify-center space-x-2 mt-4">
-                {Array.from({ length: totalRequestPages }, (_, i) => i + 1).map(
-                  (page) => (
-                    <button
-                      key={page}
-                      onClick={() => handleRequestPageChange(page)}
-                      className={`px-3 py-1 border rounded ${
-                        page === requestPage
-                          ? "bg-indigo-600 text-white"
-                          : "bg-white text-indigo-600 hover:bg-indigo-100"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  )
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Notifications Section with Pagination */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-xl font-bold mb-4">Notifications</h2>
-            <div className="space-y-4">
-              {paginatedNotifications.map((notif, index) => (
-                <div
-                  key={notif.id || index}
-                  className="border p-4 rounded flex justify-between items-center"
-                >
-                  <div>
-                    <p className="font-bold">{notif.sender}</p>
-                    <p>{notif.content}</p>
-                    <p className="text-sm text-gray-500">
-                      {new Date(notif.timestamp).toLocaleString()}
-                    </p>
-                  </div>
-                  {notif.sender === "Teacher" && (
-                    <button onClick={() => handleDeleteNotification(notif.id)}>
-                      <Trash
-                        size={18}
-                        className="text-red-500 hover:text-red-700"
-                      />
-                    </button>
+                        <div className="flex justify-between items-start mb-2">
+                          <span
+                            className={`px-2 py-1 rounded-full text-[10px] uppercase font-black ${
+                              req.acceptStatus === "accepted"
+                                ? "bg-green-200 text-green-700"
+                                : req.acceptStatus === "rejected"
+                                  ? "bg-red-200 text-red-700"
+                                  : "bg-amber-200 text-amber-700"
+                            }`}
+                          >
+                            {req.acceptStatus}
+                          </span>
+                          <button
+                            onClick={() => handleDeleteRequest(req.id)}
+                            className="text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <Trash size={14} />
+                          </button>
+                        </div>
+                        <p className="text-gray-700 text-sm mb-2">
+                          {req.content}
+                        </p>
+                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                          {new Date(req.timestamp).toLocaleDateString()}
+                        </p>
+                      </motion.div>
+                    ))
                   )}
-                </div>
-              ))}
-            </div>
-            {totalPages > 1 && (
-              <div className="flex justify-center space-x-2 mt-4">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                  (page) => (
-                    <button
-                      key={page}
-                      onClick={() => handlePageChange(page)}
-                      className={`px-3 py-1 border rounded ${
-                        page === currentPage
-                          ? "bg-indigo-600 text-white"
-                          : "bg-white text-indigo-600 hover:bg-indigo-100"
-                      }`}
-                    >
-                      {page}
-                    </button>
-                  )
-                )}
+                </AnimatePresence>
               </div>
-            )}
+            </motion.section>
+
+            {/* Notifications Section */}
+            <motion.section
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden"
+            >
+              <div className="p-8 border-b border-gray-50 flex items-center gap-3">
+                <div className="p-3 bg-red-50 text-red-600 rounded-2xl">
+                  <Bell size={24} />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800">Alerts</h2>
+              </div>
+              <div className="p-8 space-y-4">
+                <AnimatePresence>
+                  {paginatedNotifications.map((notif) => (
+                    <motion.div
+                      layout
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      key={notif.id}
+                      className="p-4 rounded-2xl bg-gray-50 border border-gray-100 group relative"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-bold text-gray-900 text-sm">
+                            {notif.sender}
+                          </p>
+                          <p className="text-gray-600 text-sm mt-1">
+                            {notif.content}
+                          </p>
+                        </div>
+                        {notif.sender === currentUser?.fullName && (
+                          <button
+                            onClick={() => handleDeleteNotification(notif.id)}
+                            className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-all"
+                          >
+                            <Trash size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </motion.section>
           </div>
         </div>
       </main>
-      <ChatBox username="Teacher" />
+
+      <ChatBox username={currentUser?.fullName || "Teacher"} />
       <Footer />
     </div>
   );

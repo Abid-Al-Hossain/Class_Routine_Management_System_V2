@@ -5,14 +5,16 @@ import { Footer } from "../components/Footer";
 import { ChatBox } from "../components/ChatBox";
 import { LoginModal } from "../components/LoginModal";
 import { useAuthStore } from "../store/authStore";
+import { useRoutineStore } from "../store/routineStore";
 import { useNotificationStore } from "../store/notificationStore";
 import { RoutineViewer } from "../components/RoutineViewer";
-import axios from "axios";
-import { Trash } from "lucide-react";
+import { Trash, Megaphone, Send, Calendar, Bell, Users } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export const RepresentativeDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, login, logout } = useAuthStore();
+  const { isAuthenticated, login, logout, currentUser } = useAuthStore();
+  const { routine, fetchRoutine } = useRoutineStore();
   const {
     notifications,
     fetchNotifications,
@@ -20,7 +22,6 @@ export const RepresentativeDashboard: React.FC = () => {
     deleteNotification,
   } = useNotificationStore();
   const [announcement, setAnnouncement] = useState("");
-  const [routine, setRoutine] = useState({});
 
   // Pagination state for notifications
   const itemsPerPage = 6;
@@ -28,37 +29,32 @@ export const RepresentativeDashboard: React.FC = () => {
   const totalPages = Math.ceil(notifications.length / itemsPerPage);
   const paginatedNotifications = notifications.slice(
     (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    currentPage * itemsPerPage,
   );
 
   useEffect(() => {
-    fetchNotifications();
-    const fetchRoutine = async () => {
-      try {
-        const response = await axios.get("http://localhost:5000/api/routine");
-        setRoutine(response.data);
-      } catch (error) {
-        console.error("Failed to fetch routine:", error);
-      }
-    };
     fetchRoutine();
-  }, [fetchNotifications]);
+    fetchNotifications();
+  }, [fetchNotifications, fetchRoutine]);
 
   const handleLogout = () => {
     logout("representative");
     navigate("/");
   };
 
-  const handleCreateAnnouncement = async () => {
+  const handleCreateAnnouncement = () => {
     if (announcement.trim()) {
-      await addNotification(announcement, "Class Representative");
+      addNotification(
+        announcement,
+        currentUser?.fullName || "Class Representative",
+      );
       setAnnouncement("");
       fetchNotifications();
     }
   };
 
-  const handleDeleteNotification = async (id: string) => {
-    await deleteNotification(id);
+  const handleDeleteNotification = (id: string) => {
+    deleteNotification(id);
   };
 
   const handlePageChange = (page: number) => {
@@ -68,97 +64,182 @@ export const RepresentativeDashboard: React.FC = () => {
   if (!isAuthenticated.representative) {
     return (
       <LoginModal
-        role="Class Representative"
-        onLogin={(password) => {
-          const success = login("representative", password);
-          if (!success) {
-            // Handle login failure
-          }
+        role="representative"
+        onLogin={(username, password) => {
+          login("representative", username, password);
         }}
       />
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
       <Navbar
-        title="Class Representative Dashboard"
+        title="Representative Dashboard"
         showLogout
         onLogout={handleLogout}
       />
-      <main className="flex-grow container mx-auto px-4 py-8">
-        {/* Routine Section */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold mb-4">Class Routine</h2>
-          <RoutineViewer routine={routine} />
-        </div>
-        {/* Create Announcement Section */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold mb-4">Create Announcement</h2>
-          <textarea
-            value={announcement}
-            onChange={(e) => setAnnouncement(e.target.value)}
-            className="w-full p-2 border rounded mb-4"
-            rows={4}
-            placeholder="Enter announcement message..."
-          />
-          <button
-            onClick={handleCreateAnnouncement}
-            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
+
+      <main className="flex-grow container mx-auto px-4 py-8 max-w-7xl">
+        <header className="mb-8">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-50 text-violet-600 text-xs font-black uppercase tracking-wider mb-3"
           >
-            Create Announcement
-          </button>
-        </div>
-        {/* Announcements Section with Pagination */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold mb-4">Announcements</h2>
-          <div className="space-y-4">
-            {paginatedNotifications.map((notif) => (
-              <div
-                key={notif.id}
-                className="border p-4 rounded flex justify-between items-center"
-              >
-                <div>
-                  <p className="font-bold">{notif.sender}</p>
-                  <p>{notif.content}</p>
-                  <p className="text-sm text-gray-500">
-                    {new Date(notif.timestamp).toLocaleString()}
-                  </p>
+            <Users size={14} />
+            Class Management
+          </motion.div>
+          <motion.h1
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="text-4xl font-extrabold text-gray-900 tracking-tight"
+          >
+            Welcome, {currentUser?.fullName}
+          </motion.h1>
+          <p className="text-gray-500 mt-2 text-lg">
+            Lead your class, keep everyone informed and updated.
+          </p>
+        </header>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
+            {/* Routine Section */}
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden"
+            >
+              <div className="p-8 border-b border-gray-50 flex items-center gap-3">
+                <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
+                  <Calendar size={24} />
                 </div>
-                {notif.sender === "Class Representative" && (
-                  <button onClick={() => handleDeleteNotification(notif.id)}>
-                    <Trash
-                      size={18}
-                      className="text-red-500 hover:text-red-700"
-                    />
-                  </button>
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Class Routine
+                </h2>
+              </div>
+              <div className="p-8">
+                <RoutineViewer routine={routine} />
+              </div>
+            </motion.section>
+
+            {/* Create Announcement Section */}
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden"
+            >
+              <div className="p-8 border-b border-gray-50 flex items-center gap-3">
+                <div className="p-3 bg-violet-50 text-violet-600 rounded-2xl">
+                  <Megaphone size={24} />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800">
+                  Broadcaster
+                </h2>
+              </div>
+              <div className="p-8">
+                <textarea
+                  value={announcement}
+                  onChange={(e) => setAnnouncement(e.target.value)}
+                  className="w-full p-4 bg-gray-50 border-none rounded-2xl mb-4 focus:ring-2 focus:ring-violet-500 outline-none transition-all resize-none"
+                  rows={4}
+                  placeholder="Share something with the whole class..."
+                />
+                <button
+                  onClick={handleCreateAnnouncement}
+                  disabled={!announcement.trim()}
+                  className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-violet-100 hover:shadow-violet-200 disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2 group"
+                >
+                  <Send
+                    size={18}
+                    className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"
+                  />
+                  Post Announcement
+                </button>
+              </div>
+            </motion.section>
+          </div>
+
+          <div className="space-y-8 flex flex-col h-full">
+            {/* Announcements Section */}
+            <motion.section
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden flex-grow flex flex-col"
+            >
+              <div className="p-8 border-b border-gray-50 flex items-center gap-3">
+                <div className="p-3 bg-red-50 text-red-600 rounded-2xl">
+                  <Bell size={24} />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800">Alert Feed</h2>
+              </div>
+
+              <div className="p-8 flex-grow space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar">
+                <AnimatePresence mode="popLayout">
+                  {paginatedNotifications.map((notif) => (
+                    <motion.div
+                      layout
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      key={notif.id}
+                      className="group p-5 rounded-2xl border border-gray-50 hover:border-violet-100 hover:bg-violet-50/10 transition-all relative text-left"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-bold text-gray-900 text-sm group-hover:text-violet-600 transition-colors">
+                            {notif.sender}
+                          </p>
+                          <p className="text-gray-600 text-sm mt-1 leading-relaxed">
+                            {notif.content}
+                          </p>
+                          <p className="text-[10px] text-gray-400 mt-3 font-bold uppercase tracking-widest">
+                            {new Date(notif.timestamp).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+                        {notif.sender === currentUser?.fullName && (
+                          <button
+                            onClick={() => handleDeleteNotification(notif.id)}
+                            className="bg-red-50 text-red-500 p-2 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white"
+                          >
+                            <Trash size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+
+                {totalPages > 1 && (
+                  <div className="flex justify-center space-x-2 pt-4">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                      (page) => (
+                        <button
+                          key={page}
+                          onClick={() => handlePageChange(page)}
+                          className={`w-10 h-10 rounded-xl font-bold transition-all ${
+                            page === currentPage
+                              ? "bg-violet-600 text-white shadow-lg"
+                              : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ),
+                    )}
+                  </div>
                 )}
               </div>
-            ))}
+            </motion.section>
           </div>
-          {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="flex justify-center space-x-2 mt-4">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                (page) => (
-                  <button
-                    key={page}
-                    onClick={() => handlePageChange(page)}
-                    className={`px-3 py-1 border rounded ${
-                      page === currentPage
-                        ? "bg-indigo-600 text-white"
-                        : "bg-white text-indigo-600 hover:bg-indigo-100"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                )
-              )}
-            </div>
-          )}
         </div>
       </main>
-      <ChatBox username="Class Representative" />
+
+      <ChatBox username={currentUser?.fullName || "Class Representative"} />
       <Footer />
     </div>
   );

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import axios from "axios";
+import { storage, STORAGE_KEYS } from "../utils/storage";
 
 interface Notification {
   id: string;
@@ -10,49 +10,37 @@ interface Notification {
 
 interface NotificationState {
   notifications: Notification[];
-  fetchNotifications: () => Promise<void>;
-  addNotification: (content: string, sender: string) => Promise<void>;
-  deleteNotification: (id: string) => Promise<void>;
+  fetchNotifications: () => void;
+  addNotification: (content: string, sender: string) => void;
+  deleteNotification: (id: string) => void;
 }
 
 export const useNotificationStore = create<NotificationState>((set) => ({
-  notifications: [],
-  fetchNotifications: async () => {
-    try {
-      const response = await axios.get(
-        "http://localhost:5000/api/notifications"
-      );
-      set({
-        notifications: response.data.map((notif: any) => ({
-          ...notif,
-          id: notif.id || notif._id,
-        })),
-      });
-    } catch (error) {
-      console.error("Failed to fetch notifications:", error);
-    }
+  notifications: storage.get(STORAGE_KEYS.NOTIFICATIONS, []),
+
+  fetchNotifications: () => {
+    set({ notifications: storage.get(STORAGE_KEYS.NOTIFICATIONS, []) });
   },
-  addNotification: async (content, sender) => {
-    try {
-      const response = await axios.post(
-        "http://localhost:5000/api/notifications",
-        { sender, content }
-      );
-      set((state) => ({
-        notifications: [response.data, ...state.notifications],
-      }));
-    } catch (error) {
-      console.error("Failed to send notification:", error);
-    }
+
+  addNotification: (content, sender) => {
+    const newNotif: Notification = {
+      id: Math.random().toString(36).substr(2, 9),
+      content,
+      sender,
+      timestamp: new Date(),
+    };
+    set((state) => {
+      const nextNotifs = [newNotif, ...state.notifications];
+      storage.set(STORAGE_KEYS.NOTIFICATIONS, nextNotifs);
+      return { notifications: nextNotifs };
+    });
   },
-  deleteNotification: async (id) => {
-    try {
-      await axios.delete(`http://localhost:5000/api/notifications/${id}`);
-      set((state) => ({
-        notifications: state.notifications.filter((n) => n.id !== id),
-      }));
-    } catch (error) {
-      console.error("Failed to delete notification:", error);
-    }
+
+  deleteNotification: (id) => {
+    set((state) => {
+      const nextNotifs = state.notifications.filter((n) => n.id !== id);
+      storage.set(STORAGE_KEYS.NOTIFICATIONS, nextNotifs);
+      return { notifications: nextNotifs };
+    });
   },
 }));

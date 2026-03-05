@@ -1,8 +1,7 @@
 import { create } from "zustand";
-import axios from "axios";
+import { storage, STORAGE_KEYS } from "../utils/storage";
 
 interface ScheduleChangeRequest {
-  coordinatorName: string;
   id: string;
   teacherName: string;
   content: string;
@@ -11,75 +10,83 @@ interface ScheduleChangeRequest {
 }
 
 interface RoutineState {
+  routine: Record<string, any>;
   requests: ScheduleChangeRequest[];
-  fetchRequests: () => Promise<void>;
-  addRequest: (teacherName: string, content: string) => Promise<void>;
-  deleteRequest: (id: string) => Promise<void>;
-  acceptRequest: (id: string) => Promise<void>;
-  rejectRequest: (id: string) => Promise<void>;
+  fetchRoutine: () => void;
+  saveRoutine: (day: string, routineData: any) => void;
+  clearRoutine: () => void;
+  fetchRequests: () => void;
+  addRequest: (teacherName: string, content: string) => void;
+  deleteRequest: (id: string) => void;
+  acceptRequest: (id: string) => void;
+  rejectRequest: (id: string) => void;
 }
 
 export const useRoutineStore = create<RoutineState>((set) => ({
-  requests: [],
-  fetchRequests: async () => {
-    try {
-      const response = await axios.get("http://localhost:5000/api/requests");
-      const requests = response.data.map((req: { _id: any; id: any }) => ({
-        ...req,
-        id: req._id || req.id, // Ensure 'id' exists (MongoDB uses '_id')
-      }));
-      set({ requests });
-    } catch (error) {
-      console.error("Failed to fetch requests:", error);
-    }
+  routine: storage.get(STORAGE_KEYS.ROUTINES, {}),
+  requests: storage.get(STORAGE_KEYS.REQUESTS, []),
+
+  fetchRoutine: () => {
+    set({ routine: storage.get(STORAGE_KEYS.ROUTINES, {}) });
   },
-  addRequest: async (teacherName, content) => {
-    try {
-      const response = await axios.post("http://localhost:5000/api/requests", {
-        teacherName,
-        content,
-      });
-      set((state) => ({ requests: [...state.requests, response.data] }));
-    } catch (error) {
-      console.error("Failed to submit request:", error);
-    }
+
+  saveRoutine: (day, routineData) => {
+    set((state) => {
+      const nextRoutine = { ...state.routine, [day]: routineData };
+      storage.set(STORAGE_KEYS.ROUTINES, nextRoutine);
+      return { routine: nextRoutine };
+    });
   },
-  deleteRequest: async (id) => {
-    try {
-      await axios.delete(`http://localhost:5000/api/requests/${id}`);
-      set((state) => ({
-        requests: state.requests.filter((req) => req.id !== id),
-      }));
-    } catch (error) {
-      console.error("Failed to delete request:", error);
-    }
+
+  clearRoutine: () => {
+    storage.set(STORAGE_KEYS.ROUTINES, {});
+    set({ routine: {} });
   },
-  acceptRequest: async (id) => {
-    if (!id) {
-      console.error("Error: Trying to accept a request without a valid ID!");
-      return;
-    }
-    try {
-      await axios.put(`http://localhost:5000/api/requests/${id}/accept`);
-      set((state) => ({
-        requests: state.requests.map((req) =>
-          req.id === id ? { ...req, acceptStatus: "accepted" } : req
-        ),
-      }));
-    } catch (error) {
-      console.error("Failed to accept request:", error);
-    }
+
+  fetchRequests: () => {
+    set({ requests: storage.get(STORAGE_KEYS.REQUESTS, []) });
   },
-  rejectRequest: async (id) => {
-    try {
-      await axios.put(`http://localhost:5000/api/requests/${id}/reject`);
-      set((state) => ({
-        requests: state.requests.map((req) =>
-          req.id === id ? { ...req, acceptStatus: "rejected" } : req
-        ),
-      }));
-    } catch (error) {
-      console.error("Failed to reject request:", error);
-    }
+
+  addRequest: (teacherName, content) => {
+    const newRequest: ScheduleChangeRequest = {
+      id: Math.random().toString(36).substr(2, 9),
+      teacherName,
+      content,
+      timestamp: new Date(),
+      acceptStatus: "pending",
+    };
+    set((state) => {
+      const nextRequests = [newRequest, ...state.requests];
+      storage.set(STORAGE_KEYS.REQUESTS, nextRequests);
+      return { requests: nextRequests };
+    });
+  },
+
+  deleteRequest: (id) => {
+    set((state) => {
+      const nextRequests = state.requests.filter((req) => req.id !== id);
+      storage.set(STORAGE_KEYS.REQUESTS, nextRequests);
+      return { requests: nextRequests };
+    });
+  },
+
+  acceptRequest: (id) => {
+    set((state) => {
+      const nextRequests = state.requests.map((req) =>
+        req.id === id ? { ...req, acceptStatus: "accepted" as const } : req,
+      );
+      storage.set(STORAGE_KEYS.REQUESTS, nextRequests);
+      return { requests: nextRequests };
+    });
+  },
+
+  rejectRequest: (id) => {
+    set((state) => {
+      const nextRequests = state.requests.map((req) =>
+        req.id === id ? { ...req, acceptStatus: "rejected" as const } : req,
+      );
+      storage.set(STORAGE_KEYS.REQUESTS, nextRequests);
+      return { requests: nextRequests };
+    });
   },
 }));
