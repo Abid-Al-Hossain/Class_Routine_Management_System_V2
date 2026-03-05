@@ -29,7 +29,7 @@ export const StudentDashboard: React.FC = () => {
 
   useEffect(() => {
     fetchRoutine();
-    fetchNotifications();
+    fetchNotifications("student");
   }, [fetchNotifications, fetchRoutine]);
 
   const handleLogout = () => {
@@ -39,7 +39,7 @@ export const StudentDashboard: React.FC = () => {
 
   const handleDeleteNotification = (id: string) => {
     deleteNotification(id);
-    fetchNotifications();
+    fetchNotifications("student");
   };
 
   const handlePageChange = (page: number) => {
@@ -103,9 +103,9 @@ export const StudentDashboard: React.FC = () => {
           </div>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="flex flex-col gap-8">
           {/* Class Routine Section */}
-          <div className="lg:col-span-2">
+          <div className="w-full">
             <motion.section
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -126,7 +126,7 @@ export const StudentDashboard: React.FC = () => {
           </div>
 
           {/* Notifications Section */}
-          <div className="lg:col-span-1">
+          <div className="w-full">
             <motion.section
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -153,7 +153,7 @@ export const StudentDashboard: React.FC = () => {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95 }}
                         key={notif.id}
-                        className="group p-5 rounded-2xl bg-gray-50 border border-gray-100 hover:border-indigo-100 hover:bg-white hover:shadow-lg transition-all relative text-left"
+                        className="group p-5 rounded-2xl bg-gray-50 border border-gray-100 hover:border-indigo-100 hover:bg-white hover:shadow-lg transition-all duration-150 relative text-left"
                       >
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
@@ -192,7 +192,7 @@ export const StudentDashboard: React.FC = () => {
                       <button
                         key={page}
                         onClick={() => handlePageChange(page)}
-                        className={`w-10 h-10 rounded-xl font-bold transition-all ${
+                        className={`w-10 h-10 rounded-xl font-bold transition-all duration-100 ${
                           page === currentPage
                             ? "bg-indigo-600 text-white shadow-lg"
                             : "bg-gray-100 text-gray-400 hover:bg-gray-200"
@@ -209,7 +209,11 @@ export const StudentDashboard: React.FC = () => {
         </div>
       </main>
 
-      <ChatBox username={currentUser?.fullName || "Student"} />
+      <ChatBox
+        username={currentUser?.fullName || "Student"}
+        channel="students"
+        title="Student Union"
+      />
       <Footer />
     </div>
   );

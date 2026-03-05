@@ -18,7 +18,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     <motion.nav
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100 px-6 py-4"
+      className="sticky top-0 z-50 bg-indigo-100/90 backdrop-blur-md border-b border-indigo-200/50 shadow-[0_4px_24px_rgba(79,70,229,0.12)] px-6 py-4"
     >
       <div className="container mx-auto flex justify-between items-center">
         <Link

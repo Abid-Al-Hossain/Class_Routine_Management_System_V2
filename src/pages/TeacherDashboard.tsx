@@ -49,7 +49,7 @@ export const TeacherDashboard: React.FC = () => {
   useEffect(() => {
     fetchRoutine();
     fetchRequests();
-    fetchNotifications();
+    fetchNotifications("teacher");
   }, [fetchRequests, fetchNotifications, fetchRoutine]);
 
   const handleLogout = () => {
@@ -72,7 +72,7 @@ export const TeacherDashboard: React.FC = () => {
 
   const handleDeleteNotification = (id: string) => {
     deleteNotification(id);
-    fetchNotifications();
+    fetchNotifications("teacher");
   };
 
   if (!isAuthenticated.teacher) {
@@ -144,14 +144,14 @@ export const TeacherDashboard: React.FC = () => {
                 <textarea
                   value={request}
                   onChange={(e) => setRequest(e.target.value)}
-                  className="w-full p-4 bg-gray-50 border-none rounded-2xl mb-4 focus:ring-2 focus:ring-amber-500 outline-none transition-all resize-none"
+                  className="w-full p-4 bg-gray-50 border-none rounded-2xl mb-4 focus:ring-2 focus:ring-amber-500 outline-none transition-all duration-150 resize-none"
                   rows={4}
                   placeholder="Describe the change you need (e.g., reschedule Monday's 10AM class)..."
                 />
                 <button
                   onClick={handleSubmitRequest}
                   disabled={!request.trim()}
-                  className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-amber-100 hover:shadow-amber-200 disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2 group"
+                  className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-amber-100 hover:shadow-amber-200 disabled:opacity-50 disabled:shadow-none transition-all duration-150 flex items-center justify-center gap-2 group"
                 >
                   <Send
                     size={18}
@@ -190,7 +190,7 @@ export const TeacherDashboard: React.FC = () => {
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
                         key={req.id}
-                        className={`p-4 rounded-2xl border transition-all relative ${
+                        className={`p-4 rounded-2xl border transition-all duration-150 relative ${
                           req.acceptStatus === "accepted"
                             ? "bg-green-50 border-green-100"
                             : req.acceptStatus === "rejected"

@@ -1,149 +1,145 @@
 import React from "react";
-import { motion } from "framer-motion";
-import { Clock, BookOpen, User, MapPin, FlaskConical } from "lucide-react";
 
 interface Slot {
-  time: string;
   subject: string;
   teacher: string;
   room: string;
   isLab?: boolean;
 }
 
+interface RoutineData {
+  classTest?: Slot | null;
+  morningSlots?: (Slot | null)[];
+  midDaySlots?: (Slot | null)[];
+  afternoonSlots?: (Slot | null)[];
+}
+
 interface RoutineViewerProps {
-  routine: Record<string, Slot[]>;
+  routine: Record<string, RoutineData>;
 }
 
 export const RoutineViewer: React.FC<RoutineViewerProps> = ({ routine }) => {
   const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"];
+  const timeSlots = [
+    { time: "8:30 - 9:00", type: "classTest" },
+    { time: "9:00 - 9:50", type: "morning", index: 0 },
+    { time: "9:50 - 10:40", type: "morning", index: 1 },
+    { time: "11:00 - 11:50", type: "midDay", index: 0 },
+    { time: "11:50 - 12:40", type: "midDay", index: 1 },
+    { time: "12:40 - 1:30", type: "midDay", index: 2 },
+    { time: "2:30 - 3:20", type: "afternoon", index: 0 },
+    { time: "3:20 - 4:10", type: "afternoon", index: 1 },
+    { time: "4:10 - 5:00", type: "afternoon", index: 2 },
+  ];
+
+  const getSlotContent = (day: string, slot: (typeof timeSlots)[0]) => {
+    // Use the routine prop directly instead of local state.
+    const dayRoutine: RoutineData = routine[day] || {};
+
+    if (slot.type === "classTest") {
+      return { content: dayRoutine.classTest || "No Class", colSpan: 1 };
+    } else if (slot.type === "morning") {
+      return {
+        content: dayRoutine.morningSlots?.[slot.index!] || "No Class",
+        colSpan: 1,
+      };
+    } else if (slot.type === "midDay") {
+      const slotContent = dayRoutine.midDaySlots?.[slot.index!];
+      if (slotContent?.isLab) {
+        return { content: slotContent, colSpan: 3 };
+      }
+      return { content: slotContent || "No Class", colSpan: 1 };
+    } else if (slot.type === "afternoon") {
+      const slotContent = dayRoutine.afternoonSlots?.[slot.index!];
+      if (slotContent?.isLab) {
+        return { content: slotContent, colSpan: 3 };
+      }
+      return { content: slotContent || "No Class", colSpan: 1 };
+    }
+    return { content: "No Class", colSpan: 1 };
+  };
+
+  const renderClassInfo = (classInfo: any) => {
+    if (
+      !classInfo ||
+      !classInfo.subject?.trim() ||
+      !classInfo.teacher?.trim() ||
+      !classInfo.room?.trim()
+    ) {
+      return <div className="text-xs text-gray-400">No Class</div>;
+    }
+
+    return (
+      <div className="text-xs text-gray-900">
+        <div>
+          <strong>Subject:</strong> {classInfo.subject}
+        </div>
+        <div>
+          <strong>Teacher:</strong> {classInfo.teacher}
+        </div>
+        <div>
+          <strong>Room:</strong> {classInfo.room}
+        </div>
+      </div>
+    );
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-        {days.map((day, dayIndex) => (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: dayIndex * 0.1 }}
-            key={day}
-            className="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl shadow-gray-100/30 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-500 overflow-hidden flex flex-col group/day"
-          >
-            <div className="bg-gradient-to-br from-indigo-50 to-violet-50 p-8 border-b border-indigo-100/30">
-              <h3 className="text-2xl font-black text-indigo-900 tracking-tighter flex items-center justify-between">
-                {day}
-                <div className="flex gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-300"></span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-200"></span>
-                </div>
-              </h3>
-            </div>
+    <div className="overflow-x-auto">
+      <table className="min-w-full border border-gray-300 text-xs">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="border border-gray-300 px-2 py-1 text-left font-medium">
+              Day
+            </th>
+            {timeSlots.map((slot, index) => (
+              <th
+                key={index}
+                className="border border-gray-300 px-2 py-1 font-medium"
+              >
+                {slot.time}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {days.map((day) => {
+            let skipCount = 0; // To handle lab sessions spanning multiple columns
+            return (
+              <tr key={day} className="border-t border-gray-300">
+                <td className="border border-gray-300 px-2 py-1 font-medium bg-gray-50">
+                  {day}
+                </td>
+                {timeSlots.map((slot, index) => {
+                  if (skipCount > 0) {
+                    skipCount--;
+                    return null;
+                  }
 
-            <div className="p-8 space-y-6 flex-grow bg-white relative">
-              <div className="invisible group-hover/day:visible absolute inset-0 bg-gradient-to-b from-indigo-50/20 to-transparent pointer-events-none transition-all duration-500"></div>
+                  const { content, colSpan } = getSlotContent(day, slot);
+                  if (colSpan > 1) {
+                    skipCount = colSpan - 1;
+                  }
 
-              {!routine[day] || routine[day].length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-20 opacity-20">
-                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                    <BookOpen size={32} />
-                  </div>
-                  <p className="text-xs font-black uppercase tracking-[0.2em]">
-                    Rest Day
-                  </p>
-                </div>
-              ) : (
-                routine[day].map((slot, slotIndex) => (
-                  <motion.div
-                    whileHover={{ scale: 1.02 }}
-                    key={slotIndex}
-                    className={`p-6 rounded-3xl border transition-all duration-500 group relative ${
-                      slot.isLab
-                        ? "bg-gradient-to-br from-violet-600 to-indigo-700 text-white border-none shadow-xl shadow-indigo-200"
-                        : "bg-gray-50/50 border-gray-50 hover:bg-white hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-500/5"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 mb-4">
-                      <div
-                        className={`p-2 rounded-xl transition-transform ${
-                          slot.isLab
-                            ? "bg-white/20 text-white"
-                            : "bg-indigo-600 text-white"
-                        }`}
-                      >
-                        <Clock size={14} />
-                      </div>
-                      <span
-                        className={`font-black text-xs uppercase tracking-widest ${
-                          slot.isLab ? "text-indigo-100" : "text-indigo-900"
-                        }`}
-                      >
-                        {slot.time}
-                      </span>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="flex flex-col">
-                        <span
-                          className={`text-[10px] font-black uppercase tracking-[0.2em] mb-1 ${
-                            slot.isLab ? "text-indigo-200" : "text-gray-400"
-                          }`}
-                        >
-                          Course
-                        </span>
-                        <span
-                          className={`font-black text-lg tracking-tight leading-none ${
-                            slot.isLab ? "text-white" : "text-gray-900"
-                          }`}
-                        >
-                          {slot.subject}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between pt-2">
-                        <div className="flex items-center gap-2">
-                          <User
-                            size={12}
-                            className={
-                              slot.isLab ? "text-indigo-200" : "text-gray-400"
-                            }
-                          />
-                          <span
-                            className={`text-xs font-bold ${
-                              slot.isLab ? "text-indigo-50" : "text-gray-500"
-                            }`}
-                          >
-                            {slot.teacher}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin
-                            size={12}
-                            className={
-                              slot.isLab ? "text-indigo-200" : "text-gray-400"
-                            }
-                          />
-                          <span
-                            className={`text-xs font-black ${
-                              slot.isLab ? "text-white" : "text-gray-600"
-                            }`}
-                          >
-                            {slot.room}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {slot.isLab && (
-                      <div className="absolute top-4 right-4 animate-pulse">
-                        <FlaskConical size={16} className="text-white/40" />
-                      </div>
-                    )}
-                  </motion.div>
-                ))
-              )}
-            </div>
-          </motion.div>
-        ))}
-      </div>
+                  return (
+                    <td
+                      key={index}
+                      colSpan={colSpan}
+                      className="border border-gray-300 px-2 py-1 text-center"
+                    >
+                      {typeof content === "string" ? (
+                        <div className="text-xs text-gray-400">{content}</div> // Handles "No Class" as a string
+                      ) : (
+                        <div>{renderClassInfo(content)}</div> // Handles valid class info
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 };

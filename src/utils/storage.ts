@@ -22,6 +22,10 @@ export const storage = {
     const next = updater(prev);
     storage.set(key, next);
   },
+
+  remove: (key: string): void => {
+    localStorage.removeItem(key);
+  },
 };
 
 export { STORAGE_KEYS };

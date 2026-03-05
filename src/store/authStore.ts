@@ -64,9 +64,14 @@ const getInitialAuthState = (): Record<UserRole, boolean> => {
   });
 };
 
+const getInitialCurrentUser = (): User | null => {
+  // Read current user from storage if available, otherwise null
+  return storage.get<User | null>(`current_user_session`, null);
+};
+
 export const useAuthStore = create<AuthState>((set) => ({
   users: getInitialUsers(),
-  currentUser: null,
+  currentUser: getInitialCurrentUser(),
   isAuthenticated: getInitialAuthState(),
 
   login: (role, username, password) => {
@@ -80,6 +85,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       set((state) => {
         const nextAuth = { ...state.isAuthenticated, [role]: true };
         storage.set(STORAGE_KEYS.AUTH_STATE, nextAuth);
+        storage.set(`current_user_session`, user);
         return {
           isAuthenticated: nextAuth,
           currentUser: user,
@@ -105,9 +111,16 @@ export const useAuthStore = create<AuthState>((set) => ({
     set((state) => {
       const nextAuth = { ...state.isAuthenticated, [role]: false };
       storage.set(STORAGE_KEYS.AUTH_STATE, nextAuth);
+
+      // If there are no other active sessions, clear currentUser
+      const hasActiveSession = Object.values(nextAuth).some(Boolean);
+      if (!hasActiveSession) {
+        storage.remove(`current_user_session`);
+      }
+
       return {
         isAuthenticated: nextAuth,
-        currentUser: null,
+        currentUser: hasActiveSession ? state.currentUser : null,
       };
     }),
 }));

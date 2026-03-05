@@ -7,14 +7,20 @@ import {
   Send,
   Trash2,
 } from "lucide-react";
-import { useChatStore } from "../store/chatStore";
+import { useChatStore, ChatChannel } from "../store/chatStore";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ChatBoxProps {
   username: string;
+  channel?: ChatChannel;
+  title?: string;
 }
 
-export const ChatBox: React.FC<ChatBoxProps> = ({ username }) => {
+export const ChatBox: React.FC<ChatBoxProps> = ({
+  username,
+  channel = "general",
+  title = "Community Chat",
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [message, setMessage] = useState("");
@@ -27,8 +33,8 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ username }) => {
   } = useChatStore();
 
   useEffect(() => {
-    if (isOpen) fetchMessages();
-  }, [isOpen, fetchMessages]);
+    if (isOpen) fetchMessages(channel);
+  }, [isOpen, fetchMessages, channel]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -38,8 +44,9 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ username }) => {
 
   const handleSend = () => {
     if (message.trim()) {
-      addMessage(username, message);
+      addMessage(username, message, channel);
       setMessage("");
+      fetchMessages(channel);
     }
   };
 
@@ -60,7 +67,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ username }) => {
               size={24}
               className="group-hover:rotate-12 transition-transform"
             />
-            <span className="max-w-0 group-hover:max-w-xs overflow-hidden transition-all duration-500 ease-in-out whitespace-nowrap">
+            <span className="max-w-0 group-hover:max-w-xs overflow-hidden transition-all duration-150 ease-in-out whitespace-nowrap">
               Chat with peers
             </span>
           </motion.button>
@@ -89,7 +96,7 @@ export const ChatBox: React.FC<ChatBoxProps> = ({ username }) => {
             <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-4 text-white flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <h3 className="font-bold tracking-tight">Community Chat</h3>
+                <h3 className="font-bold tracking-tight">{title}</h3>
               </div>
               <div className="flex items-center gap-1">
                 <button

@@ -4,11 +4,11 @@ import { Navbar } from "../components/Navbar";
 import { Footer } from "../components/Footer";
 import { ChatBox } from "../components/ChatBox";
 import { LoginModal } from "../components/LoginModal";
-import { useAuthStore } from "../store/authStore";
+import { useAuthStore, UserRole } from "../store/authStore";
 import { useRoutineStore } from "../store/routineStore";
 import { useNotificationStore } from "../store/notificationStore";
 import { RoutineViewer } from "../components/RoutineViewer";
-import { Trash, Megaphone, Send, Calendar, Bell, Users } from "lucide-react";
+import { Trash, Megaphone, Plus, Calendar, Bell, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export const RepresentativeDashboard: React.FC = () => {
@@ -22,6 +22,7 @@ export const RepresentativeDashboard: React.FC = () => {
     deleteNotification,
   } = useNotificationStore();
   const [announcement, setAnnouncement] = useState("");
+  const [targetRole, setTargetRole] = useState<UserRole | "all">("student");
 
   // Pagination state for notifications
   const itemsPerPage = 6;
@@ -34,7 +35,7 @@ export const RepresentativeDashboard: React.FC = () => {
 
   useEffect(() => {
     fetchRoutine();
-    fetchNotifications();
+    fetchNotifications("representative");
   }, [fetchNotifications, fetchRoutine]);
 
   const handleLogout = () => {
@@ -47,9 +48,10 @@ export const RepresentativeDashboard: React.FC = () => {
       addNotification(
         announcement,
         currentUser?.fullName || "Class Representative",
+        targetRole,
       );
       setAnnouncement("");
-      fetchNotifications();
+      fetchNotifications("representative");
     }
   };
 
@@ -139,21 +141,38 @@ export const RepresentativeDashboard: React.FC = () => {
                 </h2>
               </div>
               <div className="p-8">
+                <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-none">
+                  {(["student", "teacher", "all"] as (UserRole | "all")[]).map(
+                    (role) => (
+                      <button
+                        key={role}
+                        onClick={() => setTargetRole(role)}
+                        className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-100 border ${
+                          targetRole === role
+                            ? "bg-violet-600 text-white border-violet-600 shadow-md"
+                            : "bg-gray-50 text-gray-400 border-gray-100 hover:border-violet-100"
+                        }`}
+                      >
+                        {role === "all" ? "🌐 Everyone" : `👤 ${role}s`}
+                      </button>
+                    ),
+                  )}
+                </div>
                 <textarea
                   value={announcement}
                   onChange={(e) => setAnnouncement(e.target.value)}
-                  className="w-full p-4 bg-gray-50 border-none rounded-2xl mb-4 focus:ring-2 focus:ring-violet-500 outline-none transition-all resize-none"
+                  className="w-full p-4 bg-gray-50 border-none rounded-2xl mb-4 focus:ring-2 focus:ring-violet-500 outline-none transition-all duration-150 resize-none"
                   rows={4}
-                  placeholder="Share something with the whole class..."
+                  placeholder={`Broadcast to ${targetRole === "all" ? "everyone" : targetRole + "s"}...`}
                 />
                 <button
                   onClick={handleCreateAnnouncement}
                   disabled={!announcement.trim()}
-                  className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-violet-100 hover:shadow-violet-200 disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2 group"
+                  className="w-full bg-gradient-to-r from-violet-600 to-indigo-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-violet-100 hover:shadow-violet-200 disabled:opacity-50 disabled:shadow-none transition-all duration-150 flex items-center justify-center gap-2 group"
                 >
-                  <Send
-                    size={18}
-                    className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"
+                  <Plus
+                    size={20}
+                    className="group-hover:translate-x-1 transition-transform"
                   />
                   Post Announcement
                 </button>
@@ -184,7 +203,7 @@ export const RepresentativeDashboard: React.FC = () => {
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
                       key={notif.id}
-                      className="group p-5 rounded-2xl border border-gray-50 hover:border-violet-100 hover:bg-violet-50/10 transition-all relative text-left"
+                      className="group p-5 rounded-2xl border border-gray-50 hover:border-violet-100 hover:bg-violet-50/10 transition-all duration-150 relative text-left"
                     >
                       <div className="flex justify-between items-start">
                         <div>
@@ -221,7 +240,7 @@ export const RepresentativeDashboard: React.FC = () => {
                         <button
                           key={page}
                           onClick={() => handlePageChange(page)}
-                          className={`w-10 h-10 rounded-xl font-bold transition-all ${
+                          className={`w-10 h-10 rounded-xl font-bold transition-all duration-100 ${
                             page === currentPage
                               ? "bg-violet-600 text-white shadow-lg"
                               : "bg-gray-100 text-gray-400 hover:bg-gray-200"
@@ -239,7 +258,11 @@ export const RepresentativeDashboard: React.FC = () => {
         </div>
       </main>
 
-      <ChatBox username={currentUser?.fullName || "Class Representative"} />
+      <ChatBox
+        username={currentUser?.fullName || "Class Representative"}
+        channel="students"
+        title="Student Union"
+      />
       <Footer />
     </div>
   );

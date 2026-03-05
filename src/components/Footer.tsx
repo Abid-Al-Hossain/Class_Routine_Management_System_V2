@@ -1,62 +1,43 @@
 import React from "react";
-import { Github, Globe, Heart } from "lucide-react";
-import { motion } from "framer-motion";
+import { Heart } from "lucide-react";
 
 export const Footer: React.FC = () => {
   return (
-    <footer className="bg-white border-t border-gray-100 py-12 mt-auto overflow-hidden relative">
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[1px] bg-gradient-to-r from-transparent via-indigo-200 to-transparent"></div>
+    <footer className="bg-[#0a0f25] border-t border-indigo-500/10 py-8 mt-auto overflow-hidden relative">
+      <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-indigo-500/30 to-transparent"></div>
 
-      <div className="container mx-auto px-6">
-        <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex flex-col items-center md:items-start">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xl font-black text-gray-900 tracking-tight">
+      {/* Decorative blobs */}
+      <div className="absolute -bottom-12 -left-12 w-48 h-48 bg-indigo-600/10 rounded-full blur-[80px]"></div>
+      <div className="absolute -top-12 -right-12 w-48 h-48 bg-violet-600/10 rounded-full blur-[80px]"></div>
+
+      <div className="container mx-auto px-6 relative z-10">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex flex-col items-center md:items-start text-center md:text-left">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="text-lg font-black text-white tracking-tight">
                 ClassHub
               </span>
-              <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-full uppercase tracking-widest">
+              <span className="px-2 py-0.5 bg-indigo-600/20 text-indigo-400 text-[9px] font-black rounded-full uppercase tracking-widest border border-indigo-500/20">
                 v2.0
               </span>
             </div>
-            <p className="text-sm text-gray-400 font-medium">
-              Elevating academic management with intelligence.
+            <p className="text-xs text-gray-400 font-medium max-w-sm">
+              Precision routine management. Built for excellence.
             </p>
           </div>
 
-          <div className="flex items-center gap-6">
-            <motion.a
-              whileHover={{ y: -2, color: "#4f46e5" }}
-              href="#"
-              className="text-gray-400 transition-colors"
-            >
-              <Github size={20} />
-            </motion.a>
-            <motion.a
-              whileHover={{ y: -2, color: "#4f46e5" }}
-              href="#"
-              className="text-gray-400 transition-colors"
-            >
-              <Globe size={20} />
-            </motion.a>
-          </div>
-        </div>
-
-        <div className="mt-12 pt-8 border-t border-gray-50 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-300">
-          <p>
-            &copy; {new Date().getFullYear()} Intelligent Routine Management
-            System
-          </p>
-          <div className="flex items-center gap-2">
-            Build with <Heart size={10} className="text-red-400 fill-red-400" />{" "}
-            for Excellence
-          </div>
-          <div className="flex gap-6">
-            <a href="#" className="hover:text-indigo-400 transition-colors">
-              Privacy
-            </a>
-            <a href="#" className="hover:text-indigo-400 transition-colors">
-              Terms
-            </a>
+          <div className="flex flex-col items-center md:items-end gap-3">
+            <p className="text-[10px] text-gray-600 font-bold uppercase tracking-widest">
+              &copy; {new Date().getFullYear()} Class Routine Management System
+            </p>
+            <div className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/5 text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+              Build with{" "}
+              <Heart
+                size={10}
+                className="text-indigo-500 fill-indigo-500 animate-pulse"
+              />{" "}
+              for Excellence
+            </div>
           </div>
         </div>
       </div>

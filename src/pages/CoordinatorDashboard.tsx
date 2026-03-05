@@ -4,7 +4,7 @@ import { Navbar } from "../components/Navbar";
 import { Footer } from "../components/Footer";
 import { ChatBox } from "../components/ChatBox";
 import { LoginModal } from "../components/LoginModal";
-import { useAuthStore } from "../store/authStore";
+import { useAuthStore, UserRole } from "../store/authStore";
 import { useRoutineStore } from "../store/routineStore";
 import { useNotificationStore } from "../store/notificationStore";
 import { RoutineCreator } from "../components/RoutineCreator";
@@ -59,6 +59,7 @@ export const CoordinatorDashboard: React.FC = () => {
 
   // Other state
   const [notification, setNotification] = useState("");
+  const [targetRole, setTargetRole] = useState<UserRole | "all">("all");
   const [showRoutineCreator, setShowRoutineCreator] = useState(false);
   const [selectedDay, setSelectedDay] = useState("Sunday");
 
@@ -68,7 +69,7 @@ export const CoordinatorDashboard: React.FC = () => {
 
   useEffect(() => {
     fetchRoutine();
-    fetchNotifications();
+    fetchNotifications("coordinator");
     fetchRequests();
   }, [fetchRoutine, fetchNotifications, fetchRequests]);
 
@@ -79,8 +80,13 @@ export const CoordinatorDashboard: React.FC = () => {
 
   const handleSendNotification = () => {
     if (notification.trim()) {
-      addNotification(notification, currentUser?.fullName || "Coordinator");
+      addNotification(
+        notification,
+        currentUser?.fullName || "Coordinator",
+        targetRole,
+      );
       setNotification("");
+      fetchNotifications("coordinator");
     }
   };
 
@@ -125,9 +131,9 @@ export const CoordinatorDashboard: React.FC = () => {
           </p>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="flex flex-col gap-8">
           {/* Main Content Area */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="w-full space-y-8">
             {/* Manage Schedule Section */}
             <motion.section
               initial={{ opacity: 0, y: 20 }}
@@ -146,13 +152,13 @@ export const CoordinatorDashboard: React.FC = () => {
                 <div className="flex bg-gray-100 p-1 rounded-xl">
                   <button
                     onClick={() => setShowRoutineCreator(false)}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${!showRoutineCreator ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all duration-100 ${!showRoutineCreator ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
                   >
                     View
                   </button>
                   <button
                     onClick={() => setShowRoutineCreator(true)}
-                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${showRoutineCreator ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all duration-100 ${showRoutineCreator ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
                   >
                     Create
                   </button>
@@ -225,7 +231,7 @@ export const CoordinatorDashboard: React.FC = () => {
                       <motion.div
                         layout
                         key={request.id}
-                        className={`p-5 rounded-2xl border transition-all ${
+                        className={`p-5 rounded-2xl border transition-all duration-150 ${
                           request.acceptStatus === "accepted"
                             ? "bg-green-50 border-green-100"
                             : request.acceptStatus === "rejected"
@@ -261,7 +267,7 @@ export const CoordinatorDashboard: React.FC = () => {
                           <div className="flex gap-2">
                             <button
                               onClick={() => acceptRequest(request.id)}
-                              className="flex-1 bg-green-500 text-white py-2 rounded-xl hover:bg-green-600 transition-colors flex items-center justify-center"
+                              className="flex-1 bg-green-500 text-white py-2 rounded-xl hover:bg-green-600 transition-colors duration-100 flex items-center justify-center"
                             >
                               <Check size={18} />
                             </button>
@@ -303,7 +309,7 @@ export const CoordinatorDashboard: React.FC = () => {
           </div>
 
           {/* Sidebar Area */}
-          <div className="space-y-8">
+          <div className="w-full space-y-8">
             {/* Quick Announcement Section */}
             <motion.section
               initial={{ opacity: 0, x: 20 }}
@@ -317,17 +323,37 @@ export const CoordinatorDashboard: React.FC = () => {
                 <h2 className="text-2xl font-bold text-gray-800">Broadcast</h2>
               </div>
               <div className="p-8">
+                <div className="flex gap-2 mb-4 overflow-x-auto pb-2 scrollbar-none">
+                  {(
+                    ["all", "student", "teacher", "representative"] as (
+                      | UserRole
+                      | "all"
+                    )[]
+                  ).map((role) => (
+                    <button
+                      key={role}
+                      onClick={() => setTargetRole(role)}
+                      className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-100 border ${
+                        targetRole === role
+                          ? "bg-indigo-600 text-white border-indigo-600 shadow-md"
+                          : "bg-gray-50 text-gray-400 border-gray-100 hover:border-indigo-100"
+                      }`}
+                    >
+                      {role === "all" ? "🌐 Everyone" : `👤 ${role}s`}
+                    </button>
+                  ))}
+                </div>
                 <textarea
                   value={notification}
                   onChange={(e) => setNotification(e.target.value)}
-                  className="w-full p-4 bg-gray-50 border-none rounded-2xl mb-4 focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"
+                  className="w-full p-4 bg-gray-50 border-none rounded-2xl mb-4 focus:ring-2 focus:ring-indigo-500 outline-none transition-all duration-150 resize-none"
                   rows={4}
-                  placeholder="Draft your announcement here..."
+                  placeholder={`Draft announcement for ${targetRole === "all" ? "everyone" : targetRole + "s"}...`}
                 />
                 <button
                   onClick={handleSendNotification}
                   disabled={!notification.trim()}
-                  className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-indigo-100 hover:shadow-indigo-200 disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2 group"
+                  className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-indigo-100 hover:shadow-indigo-200 disabled:opacity-50 disabled:shadow-none transition-all duration-150 flex items-center justify-center gap-2 group"
                 >
                   <Plus
                     size={20}
@@ -360,7 +386,7 @@ export const CoordinatorDashboard: React.FC = () => {
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
                       key={notif.id}
-                      className="group p-4 rounded-2xl border border-gray-50 hover:border-indigo-100 hover:bg-indigo-50/10 transition-all relative text-left"
+                      className="group p-4 rounded-2xl border border-gray-50 hover:border-indigo-100 hover:bg-indigo-50/10 transition-all duration-150 relative text-left"
                     >
                       <div className="flex justify-between items-start">
                         <div>
@@ -398,7 +424,7 @@ export const CoordinatorDashboard: React.FC = () => {
                         <button
                           key={page}
                           onClick={() => handlePageChange(page)}
-                          className={`w-8 h-8 rounded-lg text-xs font-black transition-all ${
+                          className={`w-8 h-8 rounded-lg text-xs font-black transition-all duration-100 ${
                             page === currentPage
                               ? "bg-gray-800 text-white"
                               : "bg-gray-100 text-gray-400 hover:bg-gray-200"
@@ -415,7 +441,11 @@ export const CoordinatorDashboard: React.FC = () => {
           </div>
         </div>
       </main>
-      <ChatBox username={currentUser?.fullName || "Coordinator"} />
+      <ChatBox
+        username={currentUser?.fullName || "Coordinator"}
+        channel="faculty"
+        title="Faculty Lounge"
+      />
       <Footer />
     </div>
   );

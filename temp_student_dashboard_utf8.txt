@@ -1,0 +1,364 @@
+﻿commit 016b4ea9394f3555380741f231104a2e528d1be6
+Author: Abid-Al-Hossain <aabid.al.hossain@example.com>
+Date:   Thu Mar 5 15:32:27 2026 +0600
+
+    Refactor: High-Performance Local-First Architecture & Premium UI Polish
+
+diff --git a/src/pages/StudentDashboard.tsx b/src/pages/StudentDashboard.tsx
+index c8085d4..6c3965f 100644
+--- a/src/pages/StudentDashboard.tsx
++++ b/src/pages/StudentDashboard.tsx
+@@ -5,17 +5,18 @@ import { Footer } from "../components/Footer";
+ import { ChatBox } from "../components/ChatBox";
+ import { LoginModal } from "../components/LoginModal";
+ import { useAuthStore } from "../store/authStore";
++import { useRoutineStore } from "../store/routineStore";
+ import { useNotificationStore } from "../store/notificationStore";
+ import { RoutineViewer } from "../components/RoutineViewer";
+-import axios from "axios";
+-import { Trash } from "lucide-react";
++import { Trash, Calendar, Bell, Sparkles, GraduationCap } from "lucide-react";
++import { motion, AnimatePresence } from "framer-motion";
+ 
+ export const StudentDashboard: React.FC = () => {
+   const navigate = useNavigate();
+-  const { isAuthenticated, login, logout } = useAuthStore();
++  const { isAuthenticated, login, logout, currentUser } = useAuthStore();
++  const { routine, fetchRoutine } = useRoutineStore();
+   const { notifications, fetchNotifications, deleteNotification } =
+     useNotificationStore();
+-  const [routine, setRoutine] = useState({});
+ 
+   // Pagination state for notifications
+   const itemsPerPage = 6;
+@@ -23,29 +24,21 @@ export const StudentDashboard: React.FC = () => {
+   const totalPages = Math.ceil(notifications.length / itemsPerPage);
+   const paginatedNotifications = notifications.slice(
+     (currentPage - 1) * itemsPerPage,
+-    currentPage * itemsPerPage
++    currentPage * itemsPerPage,
+   );
+ 
+   useEffect(() => {
+-    const fetchRoutine = async () => {
+-      try {
+-        const response = await axios.get("http://localhost:5000/api/routine");
+-        setRoutine(response.data);
+-      } catch (error) {
+-        console.error("Failed to fetch routine:", error);
+-      }
+-    };
+     fetchRoutine();
+     fetchNotifications();
+-  }, [fetchNotifications]);
++  }, [fetchNotifications, fetchRoutine]);
+ 
+   const handleLogout = () => {
+     logout("student");
+     navigate("/");
+   };
+ 
+-  const handleDeleteNotification = async (id: string) => {
+-    await deleteNotification(id);
++  const handleDeleteNotification = (id: string) => {
++    deleteNotification(id);
+     fetchNotifications();
+   };
+ 
+@@ -56,75 +49,167 @@ export const StudentDashboard: React.FC = () => {
+   if (!isAuthenticated.student) {
+     return (
+       <LoginModal
+-        role="Student"
+-        onLogin={(password) => {
+-          const success = login("student", password);
+-          if (!success) {
+-            // Handle login failure if needed
+-          }
++        role="student"
++        onLogin={(username, password) => {
++          login("student", username, password);
+         }}
+       />
+     );
+   }
+ 
+   return (
+-    <div className="min-h-screen flex flex-col">
++    <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+       <Navbar title="Student Dashboard" showLogout onLogout={handleLogout} />
+-      <main className="flex-grow container mx-auto px-4 py-8">
+-        {/* Class Routine Section */}
+-        <div className="bg-white rounded-lg shadow p-6">
+-          <h2 className="text-xl font-bold mb-4">Class Routine</h2>
+-          <RoutineViewer routine={routine} />
+-        </div>
+-        {/* Notifications Section with Pagination */}
+-        <div className="bg-white rounded-lg shadow p-6 mt-6">
+-          <h2 className="text-xl font-bold mb-4">Notifications</h2>
+-          <div className="space-y-4">
+-            {paginatedNotifications.map((notif) => (
+-              <div
+-                key={notif.id}
+-                className="border p-4 rounded flex justify-between items-center"
+-              >
+-                <div>
+-                  <p className="font-bold">{notif.sender}</p>
+-                  <p>{notif.content}</p>
+-                  <p className="text-sm text-gray-500">
+-                    {new Date(notif.timestamp).toLocaleString()}
+-                  </p>
++
++      <main className="flex-grow container mx-auto px-4 py-8 max-w-7xl">
++        <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
++          <div>
++            <motion.div
++              initial={{ opacity: 0, scale: 0.9 }}
++              animate={{ opacity: 1, scale: 1 }}
++              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-xs font-black uppercase tracking-wider mb-3"
++            >
++              <GraduationCap size={14} />
++              Student Portal
++            </motion.div>
++            <motion.h1
++              initial={{ opacity: 0, x: -20 }}
++              animate={{ opacity: 1, x: 0 }}
++              className="text-4xl font-extrabold text-gray-900 tracking-tight"
++            >
++              Welcome, {currentUser?.fullName}
++            </motion.h1>
++            <p className="text-gray-500 mt-2 text-lg">
++              Your academic schedule and announcements at a glance.
++            </p>
++          </div>
++
++          <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
++            <div className="p-3 bg-amber-50 text-amber-600 rounded-xl">
++              <Sparkles size={20} />
++            </div>
++            <div>
++              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
++                Today is
++              </p>
++              <p className="font-bold text-gray-800">
++                {new Date().toLocaleDateString(undefined, {
++                  weekday: "long",
++                  month: "long",
++                  day: "numeric",
++                })}
++              </p>
++            </div>
++          </div>
++        </header>
++
++        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
++          {/* Class Routine Section */}
++          <div className="lg:col-span-2">
++            <motion.section
++              initial={{ opacity: 0, y: 20 }}
++              animate={{ opacity: 1, y: 0 }}
++              className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden h-full"
++            >
++              <div className="p-8 border-b border-gray-50 flex items-center gap-3">
++                <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
++                  <Calendar size={24} />
+                 </div>
+-                {notif.sender === "Student" && (
+-                  <button onClick={() => handleDeleteNotification(notif.id)}>
+-                    <Trash
+-                      size={18}
+-                      className="text-red-500 hover:text-red-700"
+-                    />
+-                  </button>
+-                )}
++                <h2 className="text-2xl font-bold text-gray-800">
++                  Class Routine
++                </h2>
+               </div>
+-            ))}
++              <div className="p-8">
++                <RoutineViewer routine={routine} />
++              </div>
++            </motion.section>
+           </div>
+-          {totalPages > 1 && (
+-            <div className="flex justify-center space-x-2 mt-4">
+-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+-                (page) => (
+-                  <button
+-                    key={page}
+-                    onClick={() => handlePageChange(page)}
+-                    className={`px-3 py-1 border rounded ${
+-                      page === currentPage
+-                        ? "bg-indigo-600 text-white"
+-                        : "bg-white text-indigo-600 hover:bg-indigo-100"
+-                    }`}
+-                  >
+-                    {page}
+-                  </button>
+-                )
++
++          {/* Notifications Section */}
++          <div className="lg:col-span-1">
++            <motion.section
++              initial={{ opacity: 0, x: 20 }}
++              animate={{ opacity: 1, x: 0 }}
++              className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden h-full flex flex-col"
++            >
++              <div className="p-8 border-b border-gray-50 flex items-center gap-3">
++                <div className="p-3 bg-red-50 text-red-600 rounded-2xl">
++                  <Bell size={24} />
++                </div>
++                <h2 className="text-2xl font-bold text-gray-800">Alerts</h2>
++              </div>
++
++              <div className="p-8 flex-grow space-y-4">
++                <AnimatePresence mode="popLayout">
++                  {paginatedNotifications.length === 0 ? (
++                    <div className="text-center py-12 text-gray-400">
++                      <p>No new notifications.</p>
++                    </div>
++                  ) : (
++                    paginatedNotifications.map((notif) => (
++                      <motion.div
++                        layout
++                        initial={{ opacity: 0, y: 10 }}
++                        animate={{ opacity: 1, y: 0 }}
++                        exit={{ opacity: 0, scale: 0.95 }}
++                        key={notif.id}
++                        className="group p-5 rounded-2xl bg-gray-50 border border-gray-100 hover:border-indigo-100 hover:bg-white hover:shadow-lg transition-all relative text-left"
++                      >
++                        <div className="flex justify-between items-start">
++                          <div className="flex-1">
++                            <p className="font-black text-xs text-indigo-600 uppercase tracking-widest mb-1">
++                              {notif.sender}
++                            </p>
++                            <p className="text-gray-700 text-sm leading-relaxed">
++                              {notif.content}
++                            </p>
++                            <p className="text-[10px] text-gray-400 mt-3 font-bold">
++                              {new Date(notif.timestamp).toLocaleTimeString(
++                                [],
++                                { hour: "2-digit", minute: "2-digit" },
++                              )}
++                            </p>
++                          </div>
++                          {notif.sender === currentUser?.fullName && (
++                            <button
++                              onClick={() => handleDeleteNotification(notif.id)}
++                              className="opacity-0 group-hover:opacity-100 p-2 text-red-400 hover:bg-red-50 hover:text-red-500 rounded-xl transition-all"
++                            >
++                              <Trash size={16} />
++                            </button>
++                          )}
++                        </div>
++                      </motion.div>
++                    ))
++                  )}
++                </AnimatePresence>
++              </div>
++
++              {totalPages > 1 && (
++                <div className="px-8 pb-8 flex justify-center space-x-2">
++                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
++                    (page) => (
++                      <button
++                        key={page}
++                        onClick={() => handlePageChange(page)}
++                        className={`w-10 h-10 rounded-xl font-bold transition-all ${
++                          page === currentPage
++                            ? "bg-indigo-600 text-white shadow-lg"
++                            : "bg-gray-100 text-gray-400 hover:bg-gray-200"
++                        }`}
++                      >
++                        {page}
++                      </button>
++                    ),
++                  )}
++                </div>
+               )}
+-            </div>
+-          )}
++            </motion.section>
++          </div>
+         </div>
+       </main>
+-      <ChatBox username="Student" />
++
++      <ChatBox username={currentUser?.fullName || "Student"} />
+       <Footer />
+     </div>
+   );
+
+commit 76debb36fae88f57b27cbfb34bb31bd5dbcdcc7d
+Author: Abid-Al-Hossain <aabid.al.hossain@gmail.com>
+Date:   Tue Feb 18 01:51:12 2025 +0600
+
+    Updated project files with recent changes
+
+diff --git a/src/pages/StudentDashboard.tsx b/src/pages/StudentDashboard.tsx
+index 7b090a9..c8085d4 100644
+--- a/src/pages/StudentDashboard.tsx
++++ b/src/pages/StudentDashboard.tsx
+@@ -13,7 +13,8 @@ import { Trash } from "lucide-react";
+ export const StudentDashboard: React.FC = () => {
+   const navigate = useNavigate();
+   const { isAuthenticated, login, logout } = useAuthStore();
+-  const { notifications, fetchNotifications, deleteNotification } = useNotificationStore();
++  const { notifications, fetchNotifications, deleteNotification } =
++    useNotificationStore();
+   const [routine, setRoutine] = useState({});
+ 
+   // Pagination state for notifications
+@@ -93,7 +94,10 @@ export const StudentDashboard: React.FC = () => {
+                 </div>
+                 {notif.sender === "Student" && (
+                   <button onClick={() => handleDeleteNotification(notif.id)}>
+-                    <Trash size={18} className="text-red-500 hover:text-red-700" />
++                    <Trash
++                      size={18}
++                      className="text-red-500 hover:text-red-700"
++                    />
+                   </button>
+                 )}
+               </div>
+@@ -101,19 +105,21 @@ export const StudentDashboard: React.FC = () => {
+           </div>
+           {totalPages > 1 && (
+             <div className="flex justify-center space-x-2 mt-4">
+-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+-                <button
+-                  key={page}
+-                  onClick={() => handlePageChange(page)}
+-                  className={`px-3 py-1 border rounded ${
+-                    page === currentPage
+-                      ? "bg-indigo-600 text-white"
+-                      : "bg-white text-indigo-600 hover:bg-indigo-100"
+-                  }`}
+-                >
+-                  {page}
+-                </button>
+-              ))}
++              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
++                (page) => (
++                  <button
++                    key={page}
++                    onClick={() => handlePageChange(page)}
++                    className={`px-3 py-1 border rounded ${
++                      page === currentPage
++                        ? "bg-indigo-600 text-white"
++                        : "bg-white text-indigo-600 hover:bg-indigo-100"
++                    }`}
++                  >
++                    {page}
++                  </button>
++                )
++              )}
+             </div>
+           )}
+         </div>
+@@ -123,4 +129,3 @@ export const StudentDashboard: React.FC = () => {
+     </div>
+   );
+ };
+-
