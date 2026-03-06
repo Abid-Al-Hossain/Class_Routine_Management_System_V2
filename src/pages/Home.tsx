@@ -100,7 +100,7 @@ export const Home: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-6xl md:text-8xl font-black text-gray-900 tracking-tighter leading-[0.95] mb-10"
+              className="text-5xl md:text-8xl font-black text-gray-900 tracking-tighter leading-[0.95] mb-10"
             >
               Intelligence <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 via-violet-600 to-indigo-600 bg-[length:200%_auto] animate-gradient">

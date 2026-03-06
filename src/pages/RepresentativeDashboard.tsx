@@ -8,7 +8,16 @@ import { useAuthStore, UserRole } from "../store/authStore";
 import { useRoutineStore } from "../store/routineStore";
 import { useNotificationStore } from "../store/notificationStore";
 import { RoutineViewer } from "../components/RoutineViewer";
-import { Trash, Megaphone, Plus, Calendar, Bell, Users } from "lucide-react";
+import {
+  Trash,
+  Megaphone,
+  Plus,
+  Calendar,
+  Bell,
+  Users,
+  Edit2,
+  Eye,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export const RepresentativeDashboard: React.FC = () => {
@@ -21,23 +30,21 @@ export const RepresentativeDashboard: React.FC = () => {
     fetchNotifications,
     addNotification,
     deleteNotification,
+    markAsRead,
+    updateNotification,
   } = useNotificationStore();
   const [announcement, setAnnouncement] = useState("");
   const [targetRole, setTargetRole] = useState<UserRole | "all">("student");
+  const [notifFilter, setNotifFilter] = useState<"all" | "unread">("all");
+  const [editingNotifId, setEditingNotifId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
 
-  // Pagination state for notifications
-  const itemsPerPage = 6;
-  const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = Math.ceil(notifications.length / itemsPerPage);
-  const paginatedNotifications = notifications.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage,
-  );
+  // No pagination, using scrollable feed instead
 
   useEffect(() => {
     fetchRoutine();
-    fetchNotifications("representative");
-  }, [fetchNotifications, fetchRoutine]);
+    fetchNotifications("representative", currentUser?.fullName);
+  }, [fetchNotifications, fetchRoutine, currentUser?.fullName]);
 
   const handleLogout = () => {
     logout("representative");
@@ -48,11 +55,12 @@ export const RepresentativeDashboard: React.FC = () => {
     if (announcement.trim()) {
       addNotification(
         announcement,
-        currentUser?.fullName || "Class Representative",
+        currentUser?.fullName || "Alice Brown",
+        currentUser?.role || "representative",
         targetRole,
       );
       setAnnouncement("");
-      fetchNotifications("representative");
+      fetchNotifications("representative", currentUser?.fullName);
     }
   };
 
@@ -60,9 +68,15 @@ export const RepresentativeDashboard: React.FC = () => {
     deleteNotification(id);
   };
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+  const handleUpdateNotification = (id: string) => {
+    if (editContent.trim()) {
+      updateNotification(id, editContent);
+      setEditingNotifId(null);
+      setEditContent("");
+    }
   };
+
+
 
   if (!isAuthenticated.representative) {
     return (
@@ -105,9 +119,9 @@ export const RepresentativeDashboard: React.FC = () => {
           </p>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            {/* Routine Section */}
+        <div className="flex flex-col gap-8">
+          {/* Routine Section */}
+          <div className="w-full">
             <motion.section
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -125,6 +139,10 @@ export const RepresentativeDashboard: React.FC = () => {
                 <RoutineViewer routine={routine} />
               </div>
             </motion.section>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="space-y-8">
 
             {/* Create Announcement Section */}
             <motion.section
@@ -188,76 +206,145 @@ export const RepresentativeDashboard: React.FC = () => {
               animate={{ opacity: 1, x: 0 }}
               className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden flex-grow flex flex-col"
             >
-              <div className="p-8 border-b border-gray-50 flex items-center gap-3">
-                <div className="p-3 bg-red-50 text-red-600 rounded-2xl">
-                  <Bell size={24} />
+              <div className="p-8 border-b border-gray-50 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-red-50 text-red-600 rounded-2xl">
+                    <Bell size={24} />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-800">Alert Feed</h2>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-800">Alert Feed</h2>
+                <div className="flex bg-gray-100 p-1 rounded-xl">
+                  <button
+                    onClick={() => setNotifFilter("all")}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${notifFilter === "all" ? "bg-white text-indigo-600 shadow-sm" : "text-gray-400"}`}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => setNotifFilter("unread")}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all flex items-center gap-1 ${notifFilter === "unread" ? "bg-white text-indigo-600 shadow-sm" : "text-gray-400"}`}
+                  >
+                    Unread
+                    {notifications.filter(n => !(n.readBy || []).includes(currentUser?.fullName || "")).length > 0 && (
+                      <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span>
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div className="p-8 flex-grow space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar">
                 <AnimatePresence mode="popLayout">
-                  {paginatedNotifications.map((notif) => (
+                  {notifications
+                    .filter(n => notifFilter === "all" || !(n.readBy || []).includes(currentUser?.fullName || ""))
+                    .map((notif) => (
                     <motion.div
                       layout
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
                       key={notif.id}
-                      className="group p-5 rounded-2xl border border-gray-50 hover:border-violet-100 hover:bg-violet-50/10 transition-all duration-150 relative text-left"
+                      className={`group p-5 rounded-2xl border transition-all duration-150 relative text-left ${
+                        !(notif.readBy || []).includes(currentUser?.fullName || "")
+                          ? "bg-indigo-50/40 border-indigo-100 shadow-sm"
+                          : "bg-gray-50 border-gray-50 hover:border-violet-100"
+                      }`}
                     >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-bold text-gray-900 text-sm group-hover:text-violet-600 transition-colors">
-                            {notif.sender}
-                          </p>
-                          <p className="text-gray-600 text-sm mt-1 leading-relaxed">
-                            {notif.content}
-                          </p>
-                          <p className="text-[10px] text-gray-400 mt-3 font-bold uppercase tracking-widest">
-                            {new Date(notif.timestamp).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </p>
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="flex-grow">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-bold text-gray-900 text-sm group-hover:text-violet-600 transition-colors flex items-center gap-2">
+                              {notif.sender}
+                              {notif.senderRole && (
+                                <span className="text-[9px] bg-violet-100 text-violet-600 px-1.5 py-0.5 rounded uppercase">{notif.senderRole}</span>
+                              )}
+                              {!(notif.readBy || []).includes(currentUser?.fullName || "") && (
+                                <span className="bg-indigo-600 text-white text-[8px] px-1.5 py-0.5 rounded-full font-black uppercase">New</span>
+                              )}
+                            </p>
+                          </div>
+                          {notif.targetRole && (
+                            <div className="mb-2">
+                                <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">
+                                    Audience: {notif.targetRole === "all" ? "Everyone" : notif.targetRole + "s"}
+                                </span>
+                            </div>
+                          )}
+                          {editingNotifId === notif.id ? (
+                            <div className="space-y-2 mt-2">
+                              <textarea
+                                value={editContent}
+                                onChange={(e) => setEditContent(e.target.value)}
+                                className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-violet-500 outline-none"
+                                rows={3}
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleUpdateNotification(notif.id)}
+                                  className="px-3 py-1.5 bg-violet-600 text-white rounded-lg text-xs font-bold"
+                                >
+                                  Save Change
+                                </button>
+                                <button
+                                  onClick={() => setEditingNotifId(null)}
+                                  className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <p className="text-gray-600 text-sm mt-1 leading-relaxed">
+                              {notif.content}
+                            </p>
+                          )}
+                          <div className="flex items-center justify-between mt-3">
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest flex items-center gap-1">
+                              {new Date(notif.timestamp).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </p>
+                            {!notif.readBy?.includes(currentUser?.fullName || "") && (
+                              <button
+                                onClick={() => markAsRead(notif.id, currentUser?.fullName || "")}
+                                className="flex items-center gap-1 text-[9px] font-black text-indigo-600 uppercase hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all"
+                              >
+                                <Eye size={12} /> Mark read
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        {notif.sender === currentUser?.fullName && (
-                          <button
-                            onClick={() => handleDeleteNotification(notif.id)}
-                            className="bg-red-50 text-red-500 p-2 rounded-xl opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white"
-                          >
-                            <Trash size={14} />
-                          </button>
+                        {(notif.sender === currentUser?.fullName || 
+                          (notif.sender === "Class Representative" && currentUser?.role === "representative") ||
+                          (notif.sender === "Alice Brown" && currentUser?.role === "representative")) && (
+                          <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-all ml-4 flex-shrink-0 z-10">
+                            <button
+                              onClick={() => {
+                                setEditingNotifId(notif.id);
+                                setEditContent(notif.content);
+                              }}
+                              className="text-gray-400 hover:text-indigo-600 p-1.5 transition-colors"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteNotification(notif.id)}
+                              className="text-gray-400 hover:text-red-500 p-1.5 transition-colors"
+                            >
+                              <Trash size={14} />
+                            </button>
+                          </div>
                         )}
                       </div>
                     </motion.div>
                   ))}
                 </AnimatePresence>
-
-                {totalPages > 1 && (
-                  <div className="flex justify-center space-x-2 pt-4">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                      (page) => (
-                        <button
-                          key={page}
-                          onClick={() => handlePageChange(page)}
-                          className={`w-10 h-10 rounded-xl font-bold transition-all duration-100 ${
-                            page === currentPage
-                              ? "bg-violet-600 text-white shadow-lg"
-                              : "bg-gray-100 text-gray-400 hover:bg-gray-200"
-                          }`}
-                        >
-                          {page}
-                        </button>
-                      ),
-                    )}
-                  </div>
-                )}
               </div>
             </motion.section>
           </div>
         </div>
-      </main>
+      </div>
+    </main>
 
       <ChatBox
         username={currentUser?.fullName || "Class Representative"}

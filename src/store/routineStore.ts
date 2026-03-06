@@ -18,6 +18,7 @@ interface RoutineState {
   fetchRequests: () => void;
   addRequest: (teacherName: string, content: string) => void;
   deleteRequest: (id: string) => void;
+  updateRequest: (id: string, content: string) => void;
   acceptRequest: (id: string) => void;
   rejectRequest: (id: string) => void;
 }
@@ -56,6 +57,7 @@ export const useRoutineStore = create<RoutineState>((set) => ({
       acceptStatus: "pending",
     };
     set((state) => {
+      // Ensure newest are at the top (index 0)
       const nextRequests = [newRequest, ...state.requests];
       storage.set(STORAGE_KEYS.REQUESTS, nextRequests);
       return { requests: nextRequests };
@@ -65,6 +67,16 @@ export const useRoutineStore = create<RoutineState>((set) => ({
   deleteRequest: (id) => {
     set((state) => {
       const nextRequests = state.requests.filter((req) => req.id !== id);
+      storage.set(STORAGE_KEYS.REQUESTS, nextRequests);
+      return { requests: nextRequests };
+    });
+  },
+
+  updateRequest: (id, content) => {
+    set((state) => {
+      const nextRequests = state.requests.map((req) =>
+        req.id === id ? { ...req, content, timestamp: new Date() } : req,
+      );
       storage.set(STORAGE_KEYS.REQUESTS, nextRequests);
       return { requests: nextRequests };
     });

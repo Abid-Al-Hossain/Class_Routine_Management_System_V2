@@ -8,7 +8,15 @@ import { useAuthStore } from "../store/authStore";
 import { useRoutineStore } from "../store/routineStore";
 import { useNotificationStore } from "../store/notificationStore";
 import { RoutineViewer } from "../components/RoutineViewer";
-import { Trash, Send, Calendar, Bell, MessageSquare } from "lucide-react";
+import {
+  Trash,
+  Send,
+  Calendar,
+  Bell,
+  MessageSquare,
+  Edit2,
+  Eye,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export const TeacherDashboard: React.FC = () => {
@@ -19,31 +27,20 @@ export const TeacherDashboard: React.FC = () => {
     addRequest,
     fetchRequests,
     deleteRequest,
+    updateRequest,
     requests,
     routine,
     fetchRoutine,
   } = useRoutineStore();
-  const { notifications, fetchNotifications, deleteNotification } =
+  const { notifications, fetchNotifications, deleteNotification, markAsRead } =
     useNotificationStore();
   const [request, setRequest] = useState("");
+  const [notifFilter, setNotifFilter] = useState<"all" | "unread">("all");
+  const [editingRequestId, setEditingRequestId] = useState<string | null>(null);
+  const [editRequestContent, setEditRequestContent] = useState("");
 
-  // Pagination for notifications
-  const itemsPerPage = 6;
-  const [currentPage] = useState(1);
-  const paginatedNotifications = notifications.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage,
-  );
-
-  // Pagination for schedule change requests
-  const requestsPerPage = 6;
-  const [requestPage] = useState(1);
   const myRequests = requests.filter(
     (req) => req.teacherName === currentUser?.fullName,
-  );
-  const paginatedRequests = myRequests.slice(
-    (requestPage - 1) * requestsPerPage,
-    requestPage * requestsPerPage,
   );
 
   // Fetch data on load
@@ -63,6 +60,14 @@ export const TeacherDashboard: React.FC = () => {
       addRequest(currentUser.fullName, request);
       setRequest("");
       fetchRequests();
+    }
+  };
+
+  const handleUpdateRequest = (id: string) => {
+    if (editRequestContent.trim()) {
+      updateRequest(id, editRequestContent);
+      setEditingRequestId(null);
+      setEditRequestContent("");
     }
   };
 
@@ -178,14 +183,14 @@ export const TeacherDashboard: React.FC = () => {
                   Track
                 </span>
               </div>
-              <div className="p-8 space-y-4">
+              <div className="p-8 max-h-[400px] overflow-y-auto space-y-4 custom-scrollbar bg-gray-50/5">
                 <AnimatePresence>
-                  {paginatedRequests.length === 0 ? (
+                  {myRequests.length === 0 ? (
                     <p className="text-center text-gray-400 py-4">
                       No requests found.
                     </p>
                   ) : (
-                    paginatedRequests.map((req) => (
+                    myRequests.map((req) => (
                       <motion.div
                         layout
                         initial={{ opacity: 0, scale: 0.95 }}
@@ -212,16 +217,54 @@ export const TeacherDashboard: React.FC = () => {
                           >
                             {req.acceptStatus}
                           </span>
-                          <button
-                            onClick={() => handleDeleteRequest(req.id)}
-                            className="text-gray-400 hover:text-red-500 transition-colors"
-                          >
-                            <Trash size={14} />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            {req.acceptStatus === "pending" && (
+                              <button
+                                onClick={() => {
+                                  setEditingRequestId(req.id);
+                                  setEditRequestContent(req.content);
+                                }}
+                                className="text-gray-400 hover:text-indigo-600 transition-colors"
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteRequest(req.id)}
+                              className="text-gray-400 hover:text-red-500 transition-colors"
+                            >
+                              <Trash size={14} />
+                            </button>
+                          </div>
                         </div>
-                        <p className="text-gray-700 text-sm mb-2">
-                          {req.content}
-                        </p>
+                        {editingRequestId === req.id ? (
+                          <div className="space-y-2">
+                            <textarea
+                              value={editRequestContent}
+                              onChange={(e) => setEditRequestContent(e.target.value)}
+                              className="w-full p-2 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500 outline-none"
+                              rows={2}
+                            />
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleUpdateRequest(req.id)}
+                                className="px-3 py-1.5 bg-amber-500 text-white rounded-lg text-xs font-bold"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={() => setEditingRequestId(null)}
+                                className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-bold"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-gray-700 text-sm mb-2">
+                            {req.content}
+                          </p>
+                        )}
                         <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
                           {new Date(req.timestamp).toLocaleDateString()}
                         </p>
@@ -241,48 +284,98 @@ export const TeacherDashboard: React.FC = () => {
               transition={{ delay: 0.1 }}
               className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden"
             >
-              <div className="p-8 border-b border-gray-50 flex items-center gap-3">
-                <div className="p-3 bg-red-50 text-red-600 rounded-2xl">
-                  <Bell size={24} />
+              <div className="p-8 border-b border-gray-50 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-red-50 text-red-600 rounded-2xl">
+                    <Bell size={24} />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-800">Alerts</h2>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-800">Alerts</h2>
+                <div className="flex bg-gray-100 p-1 rounded-xl">
+                  <button
+                    onClick={() => setNotifFilter("all")}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all ${notifFilter === "all" ? "bg-white text-indigo-600 shadow-sm" : "text-gray-400"}`}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => setNotifFilter("unread")}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase transition-all flex items-center gap-1 ${notifFilter === "unread" ? "bg-white text-indigo-600 shadow-sm" : "text-gray-400"}`}
+                  >
+                    Unread
+                    {notifications.filter(n => !(n.readBy || []).includes(currentUser?.fullName || "")).length > 0 && (
+                      <span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span>
+                    )}
+                  </button>
+                </div>
               </div>
-              <div className="p-8 space-y-4">
+              <div className="p-8 max-h-[400px] overflow-y-auto space-y-4 custom-scrollbar bg-gray-50/5">
                 <AnimatePresence>
-                  {paginatedNotifications.map((notif) => (
+                  {notifications
+                    .filter(n => notifFilter === "all" || !(n.readBy || []).includes(currentUser?.fullName || ""))
+                    .map((notif) => (
                     <motion.div
                       layout
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
                       key={notif.id}
-                      className="p-4 rounded-2xl bg-gray-50 border border-gray-100 group relative"
+                      className={`group p-5 rounded-2xl border transition-all duration-150 relative text-left ${
+                        !(notif.readBy || []).includes(currentUser?.fullName || "")
+                          ? "bg-indigo-50/40 border-indigo-100"
+                          : "bg-gray-50 border-gray-100 shadow-sm hover:border-violet-100"
+                      }`}
                     >
                       <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-bold text-gray-900 text-sm">
-                            {notif.sender}
-                          </p>
-                          <p className="text-gray-600 text-sm mt-1">
-                            {notif.content}
-                          </p>
+                        <div className="flex-grow">
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-bold text-gray-900 text-sm group-hover:text-violet-600 transition-colors flex items-center gap-2">
+                              {notif.sender}
+                              {notif.senderRole && (
+                                <span className={`text-[9px] px-1.5 py-0.5 rounded uppercase ${
+                                    notif.senderRole === 'coordinator' ? 'bg-red-100 text-red-600' : 'bg-violet-100 text-violet-600'
+                                }`}>{notif.senderRole}</span>
+                              )}
+                              {!(notif.readBy || []).includes(currentUser?.fullName || "") && (
+                                <span className="bg-indigo-600 text-white text-[8px] px-1.5 py-0.5 rounded-full font-black uppercase">New</span>
+                              )}
+                            </p>
+                          </div>
+                            <p className="text-gray-600 text-sm">
+                              {notif.content}
+                            </p>
+                            <div className="flex items-center justify-between mt-3">
+                              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                                {new Date(notif.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                              {!(notif.readBy || []).includes(currentUser?.fullName || "") && (
+                                <button
+                                  onClick={() => markAsRead(notif.id, currentUser?.fullName || "")}
+                                  className="flex items-center gap-1 text-[9px] font-black text-indigo-600 uppercase hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all"
+                                >
+                                  <Eye size={12} /> Mark read
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          {notif.sender === currentUser?.fullName && (
+                            <div className="flex flex-col gap-1 ml-4 opacity-0 group-hover:opacity-100 transition-all">
+                              <button
+                                onClick={() => handleDeleteNotification(notif.id)}
+                                className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                              >
+                                <Trash size={14} />
+                              </button>
+                            </div>
+                          )}
                         </div>
-                        {notif.sender === currentUser?.fullName && (
-                          <button
-                            onClick={() => handleDeleteNotification(notif.id)}
-                            className="opacity-0 group-hover:opacity-100 text-red-400 hover:text-red-600 transition-all"
-                          >
-                            <Trash size={14} />
-                          </button>
-                        )}
-                      </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            </motion.section>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </motion.section>
+            </div>
           </div>
-        </div>
         </div>
       </main>
 

@@ -127,7 +127,7 @@ export const RoutineCreator: React.FC<RoutineCreatorProps> = ({
   return (
     <div className="space-y-12 max-w-5xl mx-auto">
       {/* Day Selector */}
-      <div className="bg-white p-2 rounded-[2.5rem] shadow-xl shadow-gray-100/50 border border-gray-100 flex flex-wrap gap-1">
+      <div className="bg-white p-2 rounded-[2.5rem] shadow-xl shadow-gray-100/50 border border-gray-100 flex overflow-x-auto gap-1 custom-scrollbar-hide whitespace-nowrap scroll-smooth">
         {days.map((day) => (
           <button
             key={day}
