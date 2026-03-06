@@ -1,18 +1,19 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { UserRole, useAuthStore } from "../store/authStore";
-import { UserCircle, Lock, UserPlus, LogIn, ChevronRight } from "lucide-react";
+import { UserCircle, Lock, UserPlus, LogIn, ChevronRight, Briefcase, Mail } from "lucide-react";
 
 interface LoginModalProps {
-  onLogin: (username: string, password: string) => void;
+  onLogin: (email: string, password: string) => void;
   role: UserRole;
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({ onLogin, role }) => {
   const [isRegistering, setIsRegistering] = useState(false);
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [position, setPosition] = useState("");
   const [error, setError] = useState("");
   const { register } = useAuthStore();
 
@@ -21,19 +22,19 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLogin, role }) => {
     setError("");
 
     if (isRegistering) {
-      if (!username || !password || !fullName) {
-        setError("Please fill in all fields");
+      if (!email || !password || !fullName || (role === "teacher" && !position)) {
+        setError("Please fill in all required fields");
         return;
       }
-      const success = register({ username, password, role, fullName });
+      const success = register({ email, password, role, fullName, position: role === "teacher" ? position : undefined });
       if (success) {
         setIsRegistering(false);
         setError("Registration successful! Please login.");
       } else {
-        setError("Username already exists");
+        setError("Email already in use");
       }
     } else {
-      onLogin(username, password);
+      onLogin(email, password);
     }
   };
 
@@ -88,20 +89,41 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLogin, role }) => {
                   </div>
                 )}
 
+                {isRegistering && role === "teacher" && (
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-700">
+                      Position Title
+                    </label>
+                    <div className="relative">
+                      <Briefcase
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                        size={18}
+                      />
+                      <input
+                        type="text"
+                        value={position}
+                        onChange={(e) => setPosition(e.target.value)}
+                        placeholder="e.g. Lecturer, Professor, Adjunct"
+                        className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-1">
                   <label className="text-sm font-medium text-gray-700">
-                    Username
+                    Email Address
                   </label>
                   <div className="relative">
-                    <LogIn
+                    <Mail
                       className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
                       size={18}
                     />
                     <input
-                      type="text"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Enter username"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Enter email address"
                       className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
                     />
                   </div>

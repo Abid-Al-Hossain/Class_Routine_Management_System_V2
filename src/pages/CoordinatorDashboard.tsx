@@ -22,7 +22,8 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export const CoordinatorDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, login, logout, currentUser } = useAuthStore();
+  const { isAuthenticated, login, logout, currentUsers } = useAuthStore();
+  const currentUser = currentUsers.coordinator;
   const {
     requests,
     fetchRequests,
@@ -102,8 +103,8 @@ export const CoordinatorDashboard: React.FC = () => {
     return (
       <LoginModal
         role="coordinator"
-        onLogin={(username, password) => {
-          login("coordinator", username, password);
+        onLogin={(email, password) => {
+          login("coordinator", email, password);
         }}
       />
     );
@@ -443,8 +444,7 @@ export const CoordinatorDashboard: React.FC = () => {
       </main>
       <ChatBox
         username={currentUser?.fullName || "Coordinator"}
-        channel="faculty"
-        title="Faculty Lounge"
+        userRole={currentUser?.role}
       />
       <Footer />
     </div>

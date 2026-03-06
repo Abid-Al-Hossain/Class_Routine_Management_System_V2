@@ -1,7 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { School, LogOut, Layout } from "lucide-react";
+import { School, LogOut, Layout, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
+import { storage } from "../utils/storage";
 
 interface NavbarProps {
   title: string;
@@ -47,6 +48,22 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           <div className="flex items-center gap-4">
+            <button
+              onClick={() => {
+                if (
+                  window.confirm(
+                    "Are you sure you want to reset all app data back to defaults?",
+                  )
+                ) {
+                  storage.clearAll();
+                  window.location.href = "/";
+                }
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-indigo-600 transition-all text-xs font-bold"
+            >
+              <RefreshCw size={14} />
+              Reset Data
+            </button>
             <Link
               to="/"
               className="text-sm font-bold text-gray-500 hover:text-indigo-600 transition-colors"

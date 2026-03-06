@@ -13,7 +13,8 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export const TeacherDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, login, logout, currentUser } = useAuthStore();
+  const { isAuthenticated, login, logout, currentUsers } = useAuthStore();
+  const currentUser = currentUsers.teacher;
   const {
     addRequest,
     fetchRequests,
@@ -79,8 +80,8 @@ export const TeacherDashboard: React.FC = () => {
     return (
       <LoginModal
         role="teacher"
-        onLogin={(username, password) => {
-          login("teacher", username, password);
+        onLogin={(email, password) => {
+          login("teacher", email, password);
         }}
       />
     );
@@ -97,16 +98,16 @@ export const TeacherDashboard: React.FC = () => {
             animate={{ opacity: 1, x: 0 }}
             className="text-4xl font-extrabold text-gray-900 tracking-tight"
           >
-            Hello, Prof. {currentUser?.fullName?.split(" ").pop()}
+            Hello, {currentUser?.position || "Prof."} {currentUser?.fullName?.split(" ").pop()}
           </motion.h1>
           <p className="text-gray-500 mt-2 text-lg">
             Check your schedule and manage class change requests.
           </p>
         </header>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            {/* Class Routine Section */}
+        <div className="flex flex-col gap-8">
+          {/* Class Routine Section */}
+          <div className="w-full">
             <motion.section
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -124,46 +125,47 @@ export const TeacherDashboard: React.FC = () => {
                 <RoutineViewer routine={routine} />
               </div>
             </motion.section>
-
-            {/* Request Schedule Change Section */}
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden"
-            >
-              <div className="p-8 border-b border-gray-50 flex items-center gap-3">
-                <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
-                  <MessageSquare size={24} />
-                </div>
-                <h2 className="text-2xl font-bold text-gray-800">
-                  Request Change
-                </h2>
-              </div>
-              <div className="p-8">
-                <textarea
-                  value={request}
-                  onChange={(e) => setRequest(e.target.value)}
-                  className="w-full p-4 bg-gray-50 border-none rounded-2xl mb-4 focus:ring-2 focus:ring-amber-500 outline-none transition-all duration-150 resize-none"
-                  rows={4}
-                  placeholder="Describe the change you need (e.g., reschedule Monday's 10AM class)..."
-                />
-                <button
-                  onClick={handleSubmitRequest}
-                  disabled={!request.trim()}
-                  className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-amber-100 hover:shadow-amber-200 disabled:opacity-50 disabled:shadow-none transition-all duration-150 flex items-center justify-center gap-2 group"
-                >
-                  <Send
-                    size={18}
-                    className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"
-                  />
-                  Submit Request
-                </button>
-              </div>
-            </motion.section>
           </div>
 
-          <div className="space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="space-y-8">
+              {/* Request Schedule Change Section */}
+              <motion.section
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="bg-white rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden"
+              >
+                <div className="p-8 border-b border-gray-50 flex items-center gap-3">
+                  <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
+                    <MessageSquare size={24} />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-800">
+                    Request Change
+                  </h2>
+                </div>
+                <div className="p-8">
+                  <textarea
+                    value={request}
+                    onChange={(e) => setRequest(e.target.value)}
+                    className="w-full p-4 bg-gray-50 border-none rounded-2xl mb-4 focus:ring-2 focus:ring-amber-500 outline-none transition-all duration-150 resize-none"
+                    rows={4}
+                    placeholder="Describe the change you need (e.g., reschedule Monday's 10AM class)..."
+                  />
+                  <button
+                    onClick={handleSubmitRequest}
+                    disabled={!request.trim()}
+                    className="w-full bg-gradient-to-r from-amber-500 to-orange-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-amber-100 hover:shadow-amber-200 disabled:opacity-50 disabled:shadow-none transition-all duration-150 flex items-center justify-center gap-2 group"
+                  >
+                    <Send
+                      size={18}
+                      className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform"
+                    />
+                    Submit Request
+                  </button>
+                </div>
+              </motion.section>
+
             {/* Your Requests List */}
             <motion.section
               initial={{ opacity: 0, x: 20 }}
@@ -229,7 +231,9 @@ export const TeacherDashboard: React.FC = () => {
                 </AnimatePresence>
               </div>
             </motion.section>
+          </div>
 
+          <div className="space-y-8">
             {/* Notifications Section */}
             <motion.section
               initial={{ opacity: 0, x: 20 }}
@@ -279,9 +283,13 @@ export const TeacherDashboard: React.FC = () => {
             </motion.section>
           </div>
         </div>
+        </div>
       </main>
 
-      <ChatBox username={currentUser?.fullName || "Teacher"} />
+      <ChatBox 
+        username={currentUser?.fullName || "Teacher"} 
+        userRole={currentUser?.role} 
+      />
       <Footer />
     </div>
   );

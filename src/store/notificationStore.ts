@@ -29,7 +29,7 @@ export const useNotificationStore = create<NotificationState>((set) => ({
       STORAGE_KEYS.NOTIFICATIONS,
       [],
     );
-    if (!role) {
+    if (!role || role === "coordinator") {
       set({ notifications: allNotifs });
       return;
     }

@@ -5,6 +5,8 @@ import {
   useLocation,
 } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
+import { useEffect } from "react";
+import { seedMockDataIfNeeded } from "./utils/mockData";
 import { Home } from "./pages/Home";
 import { CoordinatorDashboard } from "./pages/CoordinatorDashboard";
 import { TeacherDashboard } from "./pages/TeacherDashboard";
@@ -63,6 +65,14 @@ const AnimatedRoutes = () => {
 };
 
 function App() {
+  useEffect(() => {
+    const seeded = seedMockDataIfNeeded();
+    if (seeded) {
+      // Reload once to ensure all Zustand stores sync up with the newfound populated localStorage
+      window.location.reload();
+    }
+  }, []);
+
   return (
     <Router>
       <AnimatedRoutes />

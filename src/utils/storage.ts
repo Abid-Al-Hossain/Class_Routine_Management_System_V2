@@ -26,6 +26,12 @@ export const storage = {
   remove: (key: string): void => {
     localStorage.removeItem(key);
   },
+
+  clearAll: (): void => {
+    Object.values(STORAGE_KEYS).forEach((key) => {
+      localStorage.removeItem(key);
+    });
+  },
 };
 
 export { STORAGE_KEYS };

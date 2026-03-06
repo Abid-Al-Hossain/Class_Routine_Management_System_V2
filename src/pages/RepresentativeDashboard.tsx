@@ -13,7 +13,8 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export const RepresentativeDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, login, logout, currentUser } = useAuthStore();
+  const { isAuthenticated, login, logout, currentUsers } = useAuthStore();
+  const currentUser = currentUsers.representative;
   const { routine, fetchRoutine } = useRoutineStore();
   const {
     notifications,
@@ -67,8 +68,8 @@ export const RepresentativeDashboard: React.FC = () => {
     return (
       <LoginModal
         role="representative"
-        onLogin={(username, password) => {
-          login("representative", username, password);
+        onLogin={(email, password) => {
+          login("representative", email, password);
         }}
       />
     );
@@ -260,8 +261,7 @@ export const RepresentativeDashboard: React.FC = () => {
 
       <ChatBox
         username={currentUser?.fullName || "Class Representative"}
-        channel="students"
-        title="Student Union"
+        userRole={currentUser?.role}
       />
       <Footer />
     </div>

@@ -13,7 +13,8 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { isAuthenticated, login, logout, currentUser } = useAuthStore();
+  const { isAuthenticated, login, logout, currentUsers } = useAuthStore();
+  const currentUser = currentUsers.student;
   const { routine, fetchRoutine } = useRoutineStore();
   const { notifications, fetchNotifications, deleteNotification } =
     useNotificationStore();
@@ -50,8 +51,8 @@ export const StudentDashboard: React.FC = () => {
     return (
       <LoginModal
         role="student"
-        onLogin={(username, password) => {
-          login("student", username, password);
+        onLogin={(email, password) => {
+          login("student", email, password);
         }}
       />
     );
@@ -211,8 +212,7 @@ export const StudentDashboard: React.FC = () => {
 
       <ChatBox
         username={currentUser?.fullName || "Student"}
-        channel="students"
-        title="Student Union"
+        userRole={currentUser?.role}
       />
       <Footer />
     </div>
